@@ -755,37 +755,109 @@ function selectStrategy(strategyNum) {
     });
     
     // Выделяем выбранную стратегию
-    document.getElementById(`strategy-${strategyNum}`).classList.add('active');
+    const strategyEl = document.getElementById(`strategy-${strategyNum}`);
+    if (strategyEl) {
+        strategyEl.classList.add('active');
+    }
     
-    // Применяем стратегию к пилотам
+    // Показываем/скрываем панель кастомной стратегии
+    const customPanel = document.getElementById('custom-strategy-panel');
+    if (customPanel) {
+        customPanel.style.display = (strategyNum === 4) ? 'block' : 'none';
+    }
+    
+    // Если не кастомная стратегия, применяем стандартную
+    if (strategyNum !== 4) {
+        // Применяем стратегию к пилотам
+        const playerCars = careerState.cars.filter(c => c.team === careerState.playerTeamName);
+        
+        playerCars.forEach(car => {
+            car.strategy = strategyNum;
+            
+            // Устанавливаем план пит-стопов в зависимости от стратегии
+            switch(strategyNum) {
+                case 1: // 1 остановка
+                    car.pitStopPlan = [
+                        { lap: Math.floor(careerState.totalLaps * 0.4), tire: 'hard' }
+                    ];
+                    break;
+                case 2: // 2 остановки
+                    car.pitStopPlan = [
+                        { lap: Math.floor(careerState.totalLaps * 0.3), tire: 'medium' },
+                        { lap: Math.floor(careerState.totalLaps * 0.65), tire: 'soft' }
+                    ];
+                    break;
+                case 3: // Агрессивная
+                    car.pitStopPlan = [
+                        { lap: Math.floor(careerState.totalLaps * 0.25), tire: 'soft' },
+                        { lap: Math.floor(careerState.totalLaps * 0.55), tire: 'soft' }
+                    ];
+                    break;
+            }
+        });
+        
+        const titleEl = strategyEl?.querySelector('.strategy-title');
+        if (titleEl) {
+            addRaceLog(`📊 Выбрана стратегия ${strategyNum}: ${titleEl.textContent}`);
+        }
+    }
+}
+
+// Обновляет интерфейс кастомных пит-стопов
+function updateCustomStrategyPits() {
+    const pitCount = parseInt(document.getElementById('custom-pit-count').value) || 0;
+    const container = document.getElementById('custom-pit-stops-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    for (let i = 0; i < pitCount; i++) {
+        const pitGroup = document.createElement('div');
+        pitGroup.className = 'strategy-control-group';
+        pitGroup.innerHTML = `
+            <label>Пит-стоп ${i + 1} (круг):</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" id="custom-pit-${i}-lap" min="1" max="${careerState.totalLaps || 50}" 
+                       value="${Math.floor((careerState.totalLaps || 50) * (0.3 + i * 0.2))}" 
+                       style="width: 80px; padding: 8px; background: rgba(20, 40, 60, 0.8); color: white; border: 1px solid #2a5a8c; border-radius: 8px;">
+                <select id="custom-pit-${i}-tire" class="tire-select" style="flex: 1;">
+                    <option value="soft">Мягкие (Soft)</option>
+                    <option value="medium" selected>Средние (Medium)</option>
+                    <option value="hard">Жесткие (Hard)</option>
+                </select>
+            </div>
+        `;
+        container.appendChild(pitGroup);
+    }
+}
+
+// Применяет кастомную стратегию
+function applyCustomStrategy() {
+    const startTire = document.getElementById('custom-start-tire').value;
+    const pitCount = parseInt(document.getElementById('custom-pit-count').value) || 0;
     const playerCars = careerState.cars.filter(c => c.team === careerState.playerTeamName);
     
     playerCars.forEach(car => {
-        car.strategy = strategyNum;
+        car.strategy = 4; // Кастомная стратегия
+        car.tire = startTire; // Устанавливаем стартовые шины
         
-        // Устанавливаем план пит-стопов в зависимости от стратегии
-        switch(strategyNum) {
-            case 1: // 1 остановка
-                car.pitStopPlan = [
-                    { lap: Math.floor(careerState.totalLaps * 0.4), tire: 'hard' }
-                ];
-                break;
-            case 2: // 2 остановки
-                car.pitStopPlan = [
-                    { lap: Math.floor(careerState.totalLaps * 0.3), tire: 'medium' },
-                    { lap: Math.floor(careerState.totalLaps * 0.65), tire: 'soft' }
-                ];
-                break;
-            case 3: // Агрессивная
-                car.pitStopPlan = [
-                    { lap: Math.floor(careerState.totalLaps * 0.25), tire: 'soft' },
-                    { lap: Math.floor(careerState.totalLaps * 0.55), tire: 'soft' }
-                ];
-                break;
+        // Собираем план пит-стопов
+        car.pitStopPlan = [];
+        for (let i = 0; i < pitCount; i++) {
+            const lapInput = document.getElementById(`custom-pit-${i}-lap`);
+            const tireSelect = document.getElementById(`custom-pit-${i}-tire`);
+            if (lapInput && tireSelect) {
+                const lap = parseInt(lapInput.value) || 1;
+                const tire = tireSelect.value;
+                car.pitStopPlan.push({ lap: Math.min(lap, careerState.totalLaps), tire });
+            }
         }
+        
+        // Сортируем пит-стопы по кругу
+        car.pitStopPlan.sort((a, b) => a.lap - b.lap);
     });
     
-    addRaceLog(`📊 Выбрана стратегия ${strategyNum}: ${document.getElementById(`strategy-${strategyNum}`).querySelector('.strategy-title').textContent}`);
+    addRaceLog(`📊 Применена кастомная стратегия: старт на ${tireConfigs[startTire].name}, ${pitCount} пит-стопов`);
 }
 
 // Запрашивает пит-стоп
@@ -1270,21 +1342,121 @@ function updateFinances() {
     updateTeamInfo();
 }
 
-// Завершает сезон
+// Завершает сезон с крутой анимацией
 function finishSeason() {
     addRaceLog(`🎊 СЕЗОН ${careerState.season} ЗАВЕРШЁН!`);
     addRaceLog(`🏆 Победитель Кубка конструкторов: ${careerState.constructorsStandings[0].team}`);
     addRaceLog(`🥇 Чемпион мира: ${careerState.driversStandings[0].driver}`);
     
-    // Показываем итоги сезона
+    // Показываем анимацию празднования
     setTimeout(() => {
-        alert(`Сезон ${careerState.season} завершён!\n\n` +
-              `Кубок конструкторов:\n` +
-              `1. ${careerState.constructorsStandings[0].team} - ${careerState.constructorsStandings[0].points} очков\n` +
-              `2. ${careerState.constructorsStandings[1].team} - ${careerState.constructorsStandings[1].points} очков\n` +
-              `3. ${careerState.constructorsStandings[2].team} - ${careerState.constructorsStandings[2].points} очков\n\n` +
-              `Ваша команда "${careerState.playerTeamName}" заняла ${careerState.constructorsStandings.findIndex(s => s.team === careerState.playerTeamName) + 1} место с ${careerState.teamPoints} очками!`);
+        showSeasonEndCelebration();
     }, 1000);
+}
+
+// Показывает анимацию празднования конца сезона
+function showSeasonEndCelebration() {
+    const modal = document.getElementById('season-end-modal');
+    const container = document.getElementById('season-celebration');
+    if (!modal || !container) return;
+    
+    const playerTeamPos = careerState.constructorsStandings.findIndex(s => s.team === careerState.playerTeamName) + 1;
+    const playerTeamPoints = careerState.teamPoints;
+    const isChampion = playerTeamPos === 1;
+    const isPodium = playerTeamPos <= 3;
+    
+    const constructorsTop3 = careerState.constructorsStandings.slice(0, 3);
+    const driversTop3 = careerState.driversStandings.slice(0, 3);
+    
+    container.innerHTML = `
+        <div class="celebration-header">
+            <h1 class="celebration-title">🎉 СЕЗОН ${careerState.season} ЗАВЕРШЁН! 🎉</h1>
+            ${isChampion ? '<div class="champion-badge">🏆 ВЫ ЧЕМПИОНЫ! 🏆</div>' : ''}
+        </div>
+        
+        <div class="celebration-content">
+            <div class="championship-winners">
+                <div class="winners-section">
+                    <h2>🏆 Кубок конструкторов</h2>
+                    <div class="winners-podium">
+                        ${constructorsTop3.map((team, index) => {
+                            const position = index + 1;
+                            const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉';
+                            const isPlayer = team.team === careerState.playerTeamName;
+                            
+                            return `
+                                <div class="winner-card ${isPlayer ? 'player-winner' : ''}" style="animation-delay: ${index * 0.2}s">
+                                    <div class="winner-medal">${medal}</div>
+                                    <div class="winner-position">${position}</div>
+                                    <div class="winner-name">${team.team}</div>
+                                    <div class="winner-points">${team.points} очков</div>
+                                    ${isPlayer ? '<div class="your-team-badge">Ваша команда</div>' : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                
+                <div class="winners-section">
+                    <h2>🥇 Чемпионат пилотов</h2>
+                    <div class="winners-podium">
+                        ${driversTop3.map((driver, index) => {
+                            const position = index + 1;
+                            const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉';
+                            const isPlayer = driver.team === careerState.playerTeamName;
+                            
+                            return `
+                                <div class="winner-card ${isPlayer ? 'player-winner' : ''}" style="animation-delay: ${index * 0.2 + 0.6}s">
+                                    <div class="winner-medal">${medal}</div>
+                                    <div class="winner-position">${position}</div>
+                                    <div class="winner-name">${driver.driver}</div>
+                                    <div class="winner-team">${driver.team}</div>
+                                    <div class="winner-points">${driver.points} очков</div>
+                                    ${isPlayer ? '<div class="your-team-badge">Ваш пилот</div>' : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="your-results">
+                <h2>Ваши результаты</h2>
+                <div class="your-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Место в Кубке</div>
+                        <div class="stat-value">${playerTeamPos}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Очки команды</div>
+                        <div class="stat-value">${playerTeamPoints}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Побед</div>
+                        <div class="stat-value">${careerState.raceResults.filter(r => 
+                            r.results.some(res => res.team === careerState.playerTeamName && res.position === 1)
+                        ).length}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="celebration-footer">
+            <button class="close-celebration-btn" onclick="closeSeasonCelebration()">Продолжить</button>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+}
+
+// Закрывает анимацию празднования
+function closeSeasonCelebration() {
+    const modal = document.getElementById('season-end-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
 }
 
 // =================== ИНТЕРФЕЙС ===================
@@ -1384,11 +1556,39 @@ function initializeCars() {
         car.tire = tireTypes[Math.floor(Math.random() * tireTypes.length)];
         car.tireWear = 90 + Math.random() * 10;
         
-        // Устанавливаем стратегию по умолчанию
-        car.strategy = 1;
-        car.pitStopPlan = [
-            { lap: Math.floor((careerState.totalLaps || 50) * 0.4), tire: 'hard' }
-        ];
+        // Разные стратегии для AI (не только 1 пит-стоп)
+        const strategyType = Math.random();
+        const totalLaps = careerState.totalLaps || 50;
+        
+        if (strategyType < 0.3) {
+            // 30% - 1 остановка (консервативная)
+            car.strategy = 1;
+            car.pitStopPlan = [
+                { lap: Math.floor(totalLaps * (0.35 + Math.random() * 0.15)), tire: 'hard' }
+            ];
+        } else if (strategyType < 0.7) {
+            // 40% - 2 остановки (стандартная)
+            car.strategy = 2;
+            const firstPit = Math.floor(totalLaps * (0.25 + Math.random() * 0.15));
+            const secondPit = Math.floor(totalLaps * (0.6 + Math.random() * 0.15));
+            car.pitStopPlan = [
+                { lap: firstPit, tire: Math.random() > 0.5 ? 'medium' : 'hard' },
+                { lap: secondPit, tire: Math.random() > 0.5 ? 'soft' : 'medium' }
+            ];
+        } else if (strategyType < 0.9) {
+            // 20% - 3 остановки (агрессивная)
+            car.strategy = 3;
+            car.pitStopPlan = [
+                { lap: Math.floor(totalLaps * (0.2 + Math.random() * 0.1)), tire: 'soft' },
+                { lap: Math.floor(totalLaps * (0.45 + Math.random() * 0.1)), tire: 'soft' },
+                { lap: Math.floor(totalLaps * (0.7 + Math.random() * 0.1)), tire: 'soft' }
+            ];
+        } else {
+            // 10% - без пит-стопов (экстремальная)
+            car.strategy = 0;
+            car.pitStopPlan = [];
+            car.tire = 'hard'; // Стартуют на жестких
+        }
     });
     
     console.log('Машины инициализированы:', careerState.cars.length);
@@ -2337,35 +2537,140 @@ function getPlayerCar(driverIndex) {
     return null;
 }
 
-// Показывает результаты гонки
+// Показывает результаты гонки с анимацией подиума
 function showRaceResults() {
     const results = careerState.raceResults[careerState.raceResults.length - 1];
     
-    let message = `Гонка ${careerState.currentRace - 1}. ${results.track}\n\n`;
-    message += 'Топ-10:\n';
+    // Показываем анимацию подиума
+    showPodiumAnimation(results);
     
-    for (let i = 0; i < Math.min(10, results.results.length); i++) {
-        const result = results.results[i];
-        message += `${result.position}. ${result.driver} (${result.team}) - ${result.points} очков\n`;
-    }
-    
-    // Результаты пилотов игрока
-    const playerResults = results.results.filter(r => r.team === careerState.playerTeamName);
-    if (playerResults.length > 0) {
-        message += '\nВаши пилоты:\n';
-        playerResults.forEach(result => {
-            message += `${result.position}. ${result.driver} - ${result.points} очков\n`;
-        });
-    }
-    
-    // Быстрый круг
-    if (careerState.fastestLap.driver) {
-        message += `\nБыстрый круг: ${careerState.fastestLap.driver} (${careerState.fastestLap.time.toFixed(2)}с)`;
-    }
-    
+    // Через 4 секунды показываем полные результаты
     setTimeout(() => {
-        alert(message);
-    }, 500);
+        showFullRaceResults(results);
+    }, 4000);
+}
+
+// Показывает анимацию подиума
+function showPodiumAnimation(results) {
+    const modal = document.getElementById('podium-modal');
+    const container = document.getElementById('podium-container');
+    if (!modal || !container) return;
+    
+    const top3 = results.results.slice(0, 3);
+    
+    container.innerHTML = `
+        <div class="podium-header">
+            <h1>🏁 ФИНИШ ГОНКИ 🏁</h1>
+            <h2>${results.track}</h2>
+        </div>
+        <div class="podium-stand">
+            ${top3.map((result, index) => {
+                const position = index + 1;
+                const height = position === 1 ? 200 : position === 2 ? 150 : 100;
+                const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉';
+                const delay = index * 0.3;
+                
+                return `
+                    <div class="podium-place" style="animation-delay: ${delay}s; height: ${height}px;">
+                        <div class="podium-medal">${medal}</div>
+                        <div class="podium-driver">${result.driver}</div>
+                        <div class="podium-team">${result.team}</div>
+                        <div class="podium-points">${result.points} очков</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        <div class="podium-fastest-lap">
+            ${careerState.fastestLap.driver ? 
+                `⚡ Быстрый круг: ${careerState.fastestLap.driver} (${careerState.fastestLap.time.toFixed(2)}с)` : 
+                ''
+            }
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+}
+
+// Показывает полные результаты гонки
+function showFullRaceResults(results) {
+    const podiumModal = document.getElementById('podium-modal');
+    const resultsModal = document.getElementById('race-results-modal');
+    const container = document.getElementById('race-results-full');
+    
+    if (!resultsModal || !container) return;
+    
+    // Закрываем подиум
+    if (podiumModal) {
+        podiumModal.style.display = 'none';
+        podiumModal.classList.remove('active');
+    }
+    
+    container.innerHTML = `
+        <div class="results-header">
+            <h1>📊 Результаты гонки</h1>
+            <h2>${results.track}</h2>
+        </div>
+        <div class="results-table-container">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Поз.</th>
+                        <th>Пилот</th>
+                        <th>Команда</th>
+                        <th>Время</th>
+                        <th>Пит-стопы</th>
+                        <th>Очки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${results.results.map((result, index) => {
+                        const isPlayer = result.team === careerState.playerTeamName;
+                        const timeStr = formatRaceTime(result.time);
+                        const rowClass = index < 3 ? 'podium-row' : isPlayer ? 'player-row' : '';
+                        
+                        return `
+                            <tr class="${rowClass}">
+                                <td class="position-cell">${result.position}</td>
+                                <td class="driver-cell">${result.driver}</td>
+                                <td class="team-cell">
+                                    <img src="${getTeamLogoPath(result.team)}" alt="${result.team}" 
+                                         style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;" 
+                                         onerror="this.src='data/assets/f1.png'">
+                                    ${result.team}
+                                </td>
+                                <td class="time-cell">${timeStr}</td>
+                                <td class="pits-cell">${result.pitStops}</td>
+                                <td class="points-cell">${result.points > 0 ? result.points : '-'}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+        <div class="results-footer">
+            <button class="close-results-btn" onclick="closeRaceResults()">Закрыть</button>
+        </div>
+    `;
+    
+    resultsModal.style.display = 'flex';
+    resultsModal.classList.add('active');
+}
+
+// Форматирует время гонки
+function formatRaceTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(2);
+    return `${mins}:${secs.padStart(5, '0')}`;
+}
+
+// Закрывает модальное окно результатов
+function closeRaceResults() {
+    const modal = document.getElementById('race-results-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
 }
 
 // Переходит к следующей гонке

@@ -166,6 +166,39 @@
                                     <div class="strategy-desc">Soft (12) → Soft (12) → Soft (остаток)</div>
                                     <div class="strategy-risk">Риск: Высокий</div>
                                 </div>
+                                <div class="strategy-option" id="strategy-4">
+                                    <div class="strategy-title">Кастомная</div>
+                                    <div class="strategy-desc">Создайте свою стратегию</div>
+                                    <div class="strategy-risk">Риск: Настраиваемый</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Кастомная стратегия -->
+                            <div id="custom-strategy-panel" class="custom-strategy-panel" style="display: none;">
+                                <h3><i class="fas fa-cog"></i> Настройка кастомной стратегии</h3>
+                                <div class="custom-strategy-controls">
+                                    <div class="strategy-control-group">
+                                        <label>Стартовые шины:</label>
+                                        <select id="custom-start-tire" class="tire-select">
+                                            <option value="soft">Мягкие (Soft)</option>
+                                            <option value="medium" selected>Средние (Medium)</option>
+                                            <option value="hard">Жесткие (Hard)</option>
+                                        </select>
+                                    </div>
+                                    <div class="strategy-control-group">
+                                        <label>Количество пит-стопов:</label>
+                                        <select id="custom-pit-count" class="tire-select" onchange="updateCustomStrategyPits()">
+                                            <option value="0">0 (без пит-стопов)</option>
+                                            <option value="1" selected>1 остановка</option>
+                                            <option value="2">2 остановки</option>
+                                            <option value="3">3 остановки</option>
+                                        </select>
+                                    </div>
+                                    <div id="custom-pit-stops-container"></div>
+                                    <button class="pit-request-btn" onclick="applyCustomStrategy()" style="margin-top: 15px;">
+                                        <i class="fas fa-check"></i> Применить стратегию
+                                    </button>
+                                </div>
                             </div>
                             
                             <div class="pit-control-panel">
@@ -584,6 +617,27 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подиума -->
+    <div id="podium-modal" class="modal">
+        <div class="modal-content podium-content">
+            <div class="podium-container" id="podium-container"></div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно результатов гонки -->
+    <div id="race-results-modal" class="modal">
+        <div class="modal-content results-content">
+            <div class="results-container-full" id="race-results-full"></div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно конца сезона -->
+    <div id="season-end-modal" class="modal">
+        <div class="modal-content season-end-content">
+            <div class="season-celebration" id="season-celebration"></div>
         </div>
     </div>
 

@@ -1497,6 +1497,450 @@ body {
     box-shadow: 0 10px 25px rgba(0, 200, 100, 0.4);
 }
 
+/* Кастомная стратегия */
+.custom-strategy-panel {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(20, 40, 60, 0.6);
+    border-radius: 10px;
+    border: 1px solid rgba(0, 180, 255, 0.3);
+}
+
+.custom-strategy-panel h3 {
+    color: #88c1ff;
+    margin-bottom: 15px;
+}
+
+.strategy-control-group {
+    margin-bottom: 15px;
+}
+
+.strategy-control-group label {
+    display: block;
+    color: #88c1ff;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+/* Анимация подиума */
+.podium-content {
+    max-width: 900px;
+    text-align: center;
+}
+
+.podium-header {
+    margin-bottom: 40px;
+}
+
+.podium-header h1 {
+    font-size: 3em;
+    color: #FFD700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    margin-bottom: 10px;
+    animation: pulse 2s infinite;
+}
+
+.podium-header h2 {
+    font-size: 1.5em;
+    color: #88c1ff;
+}
+
+.podium-stand {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 30px;
+    margin: 40px 0;
+    min-height: 250px;
+}
+
+.podium-place {
+    background: linear-gradient(to top, #2a5a8c, #1a3a5c);
+    border-radius: 10px 10px 0 0;
+    padding: 20px;
+    min-width: 200px;
+    position: relative;
+    animation: slideUp 0.8s ease-out;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 215, 0, 0.5);
+}
+
+.podium-place:nth-child(1) {
+    background: linear-gradient(to top, #FFD700, #FFA500);
+    border-color: #FFD700;
+    order: 2;
+}
+
+.podium-place:nth-child(2) {
+    background: linear-gradient(to top, #C0C0C0, #808080);
+    border-color: #C0C0C0;
+    order: 1;
+}
+
+.podium-place:nth-child(3) {
+    background: linear-gradient(to top, #CD7F32, #8B4513);
+    border-color: #CD7F32;
+    order: 3;
+}
+
+.podium-medal {
+    font-size: 4em;
+    margin-bottom: 10px;
+    animation: bounce 1s infinite;
+}
+
+.podium-driver {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 5px;
+}
+
+.podium-team {
+    font-size: 1.1em;
+    color: #88c1ff;
+    margin-bottom: 10px;
+}
+
+.podium-points {
+    font-size: 1.3em;
+    color: #FFD700;
+    font-weight: bold;
+}
+
+.podium-fastest-lap {
+    margin-top: 30px;
+    font-size: 1.2em;
+    color: #88c1ff;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Результаты гонки */
+.results-content {
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.results-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(0, 180, 255, 0.3);
+}
+
+.results-header h1 {
+    font-size: 2.5em;
+    color: #FFD700;
+    margin-bottom: 10px;
+}
+
+.results-header h2 {
+    font-size: 1.5em;
+    color: #88c1ff;
+}
+
+.results-table-container {
+    margin: 20px 0;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(20, 40, 60, 0.6);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.results-table thead {
+    background: rgba(0, 80, 160, 0.8);
+}
+
+.results-table th {
+    padding: 15px;
+    text-align: left;
+    color: #88c1ff;
+    font-weight: 600;
+    border-bottom: 2px solid rgba(0, 180, 255, 0.3);
+}
+
+.results-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(60, 120, 180, 0.2);
+    color: #ffffff;
+}
+
+.results-table tr.podium-row {
+    background: rgba(255, 215, 0, 0.1);
+    font-weight: bold;
+}
+
+.results-table tr.player-row {
+    background: rgba(255, 0, 0, 0.15);
+}
+
+.results-table tr:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+.position-cell {
+    font-weight: bold;
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.driver-cell {
+    font-weight: 600;
+}
+
+.team-cell {
+    display: flex;
+    align-items: center;
+}
+
+.time-cell {
+    font-family: 'Courier New', monospace;
+}
+
+.points-cell {
+    font-weight: bold;
+    color: #FFD700;
+    text-align: center;
+}
+
+.results-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(0, 180, 255, 0.3);
+}
+
+.close-results-btn, .close-celebration-btn {
+    background: linear-gradient(to right, #00a8ff, #0066cc);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.close-results-btn:hover, .close-celebration-btn:hover {
+    background: linear-gradient(to right, #00b8ff, #0077ee);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 120, 255, 0.4);
+}
+
+/* Анимация конца сезона */
+.season-end-content {
+    max-width: 1400px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.celebration-header {
+    text-align: center;
+    margin-bottom: 40px;
+    animation: fadeIn 1s ease-in;
+}
+
+.celebration-title {
+    font-size: 3.5em;
+    color: #FFD700;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 1);
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+}
+
+.champion-badge {
+    font-size: 2em;
+    color: #FFD700;
+    background: rgba(255, 215, 0, 0.2);
+    padding: 20px 40px;
+    border-radius: 15px;
+    border: 3px solid #FFD700;
+    display: inline-block;
+    animation: bounce 1.5s infinite;
+}
+
+.celebration-content {
+    margin: 30px 0;
+}
+
+.championship-winners {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.winners-section h2 {
+    color: #88c1ff;
+    font-size: 1.8em;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.winners-podium {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.winner-card {
+    background: linear-gradient(to bottom, rgba(20, 40, 60, 0.9), rgba(10, 20, 30, 0.9));
+    border-radius: 15px;
+    padding: 25px;
+    min-width: 200px;
+    text-align: center;
+    border: 2px solid rgba(0, 180, 255, 0.3);
+    animation: slideUp 0.8s ease-out;
+    position: relative;
+    transition: transform 0.3s;
+}
+
+.winner-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 180, 255, 0.4);
+}
+
+.winner-card.player-winner {
+    border-color: #FFD700;
+    background: linear-gradient(to bottom, rgba(255, 215, 0, 0.2), rgba(20, 40, 60, 0.9));
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.winner-medal {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+
+.winner-position {
+    font-size: 2em;
+    font-weight: bold;
+    color: #FFD700;
+    margin-bottom: 10px;
+}
+
+.winner-name {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 5px;
+}
+
+.winner-team {
+    font-size: 1em;
+    color: #88c1ff;
+    margin-bottom: 10px;
+}
+
+.winner-points {
+    font-size: 1.2em;
+    color: #FFD700;
+    font-weight: bold;
+}
+
+.your-team-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #FFD700;
+    color: #000;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.your-results {
+    background: rgba(20, 40, 60, 0.6);
+    border-radius: 15px;
+    padding: 30px;
+    margin-top: 30px;
+    border: 2px solid rgba(0, 180, 255, 0.3);
+}
+
+.your-results h2 {
+    color: #88c1ff;
+    font-size: 1.8em;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.your-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: rgba(10, 20, 30, 0.8);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(0, 180, 255, 0.2);
+}
+
+.stat-card .stat-label {
+    color: #88c1ff;
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+
+.stat-card .stat-value {
+    color: #FFD700;
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.celebration-footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(0, 180, 255, 0.3);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 /* Адаптивность */
 @media (max-width: 1200px) {
     .career-content,
