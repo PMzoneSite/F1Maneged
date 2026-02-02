@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Manager Simulator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Верхняя панель управления -->
+        <header class="game-header">
+            <div class="header-top">
+                <h1><i class="fas fa-flag-checkered"></i> F1 Manager 2024</h1>
+                <div class="header-controls">
+                    <button id="change-track-btn" onclick="showTrackSelector()">
+                        <i class="fas fa-map-marked-alt"></i> Сменить трассу
+                    </button>
+                    <button id="race-control-btn" onclick="toggleRace()">
+                        <i class="fas fa-play"></i> Старт
+                    </button>
+                </div>
+            </div>
+            
+            <div class="race-info-panel">
+                <div class="info-item">
+                    <span class="info-label">Трасса:</span>
+                    <span id="track-name" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Круг:</span>
+                    <span id="current-lap" class="info-value">0</span>/<span id="total-laps">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Состояние:</span>
+                    <span id="race-status" class="info-value">Ожидание</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Время гонки:</span>
+                    <span id="race-time" class="info-value">00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-main">
+            <!-- Левая колонка: карта и управление -->
+            <div class="left-column">
+                <section class="track-section card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-road"></i> Карта гонки</h2>
+                        <div class="track-selector">
+                            <select id="live-track-select" onchange="changeTrackLive(this.value)">
+                                <option value="">Быстрая смена трассы</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="track-visualization">
+                        <canvas id="track-canvas" width="800" height="450"></canvas>
+                        <div class="track-overlay">
+                            <div class="speed-display">
+                                <div class="speed-title">Скорость симуляции</div>
+                                <div class="speed-controls">
+                                    <button class="speed-btn" onclick="setSimulationSpeed(1)">1x</button>
+                                    <button class="speed-btn" onclick="setSimulationSpeed(2)">2x</button>
+                                    <button class="speed-btn active" onclick="setSimulationSpeed(3)">3x</button>
+                                    <button class="speed-btn" onclick="setSimulationSpeed(5)">5x</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="track-legend">
+                        <div class="legend-title">Легенда:</div>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <div class="car-icon" style="background-color: #FF0000;"></div>
+                                <span>Ваша команда</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="car-icon" style="background-color: #00D2BE;"></div>
+                                <span>Соперники</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="car-icon pit-icon">P</div>
+                                <span>В пит-лейне</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Панель управления пит-стопами -->
+                <section class="pit-control-section card">
+                    <h2><i class="fas fa-tachometer-alt"></i> Стратегия и пит-стопы</h2>
+                    
+                    <div class="pit-control-panel">
+                        <div class="pit-driver-control">
+                            <div class="driver-header">
+                                <h3><i class="fas fa-user"></i> Пилот #1</h3>
+                                <div class="driver-status" id="driver1-status">На трассе</div>
+                            </div>
+                            <div class="driver-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Шины:</span>
+                                    <span class="stat-value tire-type" id="driver1-tire">Medium</span>
+                                    <div class="tire-wear-bar">
+                                        <div class="wear-fill" id="driver1-wear-bar" style="width: 85%; background-color: #FFFF00;"></div>
+                                    </div>
+                                    <span class="wear-value" id="driver1-wear">85%</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Пит-стопы:</span>
+                                    <span class="stat-value" id="driver1-pits">0</span>
+                                </div>
+                            </div>
+                            <div class="pit-actions">
+                                <div class="tire-selector">
+                                    <label>Новые шины:</label>
+                                    <select id="driver1-tire-select" class="tire-select">
+                                        <option value="soft" style="color: #FF0000;">Мягкие (Soft)</option>
+                                        <option value="medium" style="color: #FFFF00;" selected>Средние (Medium)</option>
+                                        <option value="hard" style="color: #FFFFFF;">Жесткие (Hard)</option>
+                                    </select>
+                                </div>
+                                <button class="pit-request-btn" onclick="requestPitStop(0)">
+                                    <i class="fas fa-gas-pump"></i> Запросить пит-стоп
+                                </button>
+                                <div class="pit-timer" id="driver1-pit-timer"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="pit-driver-control">
+                            <div class="driver-header">
+                                <h3><i class="fas fa-user"></i> Пилот #2</h3>
+                                <div class="driver-status" id="driver2-status">На трассе</div>
+                            </div>
+                            <div class="driver-stats">
+                                <div class="stat">
+                                    <span class="stat-label">Шины:</span>
+                                    <span class="stat-value tire-type" id="driver2-tire">Medium</span>
+                                    <div class="tire-wear-bar">
+                                        <div class="wear-fill" id="driver2-wear-bar" style="width: 70%; background-color: #FFFF00;"></div>
+                                    </div>
+                                    <span class="wear-value" id="driver2-wear">70%</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="stat-label">Пит-стопы:</span>
+                                    <span class="stat-value" id="driver2-pits">0</span>
+                                </div>
+                            </div>
+                            <div class="pit-actions">
+                                <div class="tire-selector">
+                                    <label>Новые шины:</label>
+                                    <select id="driver2-tire-select" class="tire-select">
+                                        <option value="soft" style="color: #FF0000;">Мягкие (Soft)</option>
+                                        <option value="medium" style="color: #FFFF00;" selected>Средние (Medium)</option>
+                                        <option value="hard" style="color: #FFFFFF;">Жесткие (Hard)</option>
+                                    </select>
+                                </div>
+                                <button class="pit-request-btn" onclick="requestPitStop(1)">
+                                    <i class="fas fa-gas-pump"></i> Запросить пит-стоп
+                                </button>
+                                <div class="pit-timer" id="driver2-pit-timer"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="strategy-tips">
+                        <p><i class="fas fa-lightbulb"></i> <strong>Совет:</strong> Мягкие шины быстрее, но изнашиваются за 10-15 кругов. Жесткие медленнее, но могут проехать 30+ кругов.</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Правая колонка: таблица и информация -->
+            <div class="right-column">
+                <section class="standings-section card">
+                    <div class="section-header">
+                        <h2><i class="fas fa-list-ol"></i> Позиции в реальном времени</h2>
+                        <div class="auto-refresh">
+                            <i class="fas fa-sync-alt"></i> Автообновление
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="standings-table">
+                            <thead>
+                                <tr>
+                                    <th class="pos-col">Поз.</th>
+                                    <th class="driver-col">Гонщик</th>
+                                    <th class="team-col">Команда</th>
+                                    <th class="interval-col">Интервал</th>
+                                    <th class="tire-col">Шины</th>
+                                    <th class="pits-col">Пит</th>
+                                    <th class="lastlap-col">Посл. круг</th>
+                                </tr>
+                            </thead>
+                            <tbody id="standings-body">
+                                <!-- Заполнится через JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="table-footer">
+                        <div class="race-progress">
+                            <div class="progress-label">Прогресс гонки:</div>
+                            <div class="progress-bar">
+                                <div id="race-progress-bar" class="progress-fill"></div>
+                            </div>
+                            <div id="race-progress-text" class="progress-text">0%</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="simulation-log card">
+                    <h2><i class="fas fa-history"></i> Лог симуляции</h2>
+                    <div class="log-container" id="simulation-log">
+                        <div class="log-entry">Добро пожаловать в F1 Manager Simulator! Создайте команду, чтобы начать.</div>
+                    </div>
+                    <button class="clear-log-btn" onclick="clearSimulationLog()">
+                        <i class="fas fa-trash"></i> Очистить лог
+                    </button>
+                </section>
+            </div>
+        </main>
+
+        <!-- Модальное окно выбора команды -->
+        <div id="team-select-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-plus-circle"></i> Создание команды F1</h2>
+                    <p class="modal-subtitle">Станьте руководителем собственной команды Формулы 1</p>
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="team-name"><i class="fas fa-flag"></i> Название команды</label>
+                        <input type="text" id="team-name" placeholder="Например, Lightning Bolt Racing" value="Моя команда">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="track-select"><i class="fas fa-map"></i> Первая гонка сезона</label>
+                        <select id="track-select" class="track-select-large"></select>
+                    </div>
+                    
+                    <div class="track-preview">
+                        <div class="track-preview-title">Предпросмотр трассы:</div>
+                        <div id="track-preview-name" class="track-preview-name">-</div>
+                        <div class="track-stats">
+                            <div class="track-stat">
+                                <span class="stat-name">Длина круга:</span>
+                                <span id="preview-lap-length" class="stat-value">-</span>
+                            </div>
+                            <div class="track-stat">
+                                <span class="stat-name">Кругов:</span>
+                                <span id="preview-laps" class="stat-value">-</span>
+                            </div>
+                            <div class="track-stat">
+                                <span class="stat-name">Сложность:</span>
+                                <span id="preview-difficulty" class="stat-value">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="start-game-btn" onclick="startGame()">
+                        <i class="fas fa-play-circle"></i> Начать сезон 2024!
+                    </button>
+                    <p class="game-note">
+                        <i class="fas fa-info-circle"></i> В чемпионате также участвуют 10 реальных команд F1: Mercedes, Ferrari, Red Bull и другие.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Модальное окно выбора трассы -->
+        <div id="track-select-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-map-marked-alt"></i> Выбор трассы</h2>
+                    <p class="modal-subtitle">Выберите трассу для следующей гонки</p>
+                </div>
+                
+                <div class="tracks-grid" id="tracks-grid-container">
+                    <!-- Заполнится через JS -->
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="cancel-btn" onclick="hideTrackSelector()">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data/tracks.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
