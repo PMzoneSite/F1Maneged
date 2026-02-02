@@ -1,4 +1,150 @@
 // =================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ КАРЬЕРЫ ===================
+// =================== ИСПРАВЛЕНИЕ МОДАЛЬНЫХ ОКОН ===================
+
+// Показывает модальное окно
+function showModal(modalId) {
+    // Скрываем все модальные окна
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.classList.remove('active');
+    });
+    
+    // Показываем нужное окно
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
+}
+// Инициализация игры (добавьте в начало)
+function initGame() {
+    console.log('Инициализация игры...');
+    
+    // Останавливаем анимацию если она запущена
+    stopAnimation();
+    
+    // Сбрасываем состояние гонки
+    careerState.raceStarted = false;
+    careerState.raceFinished = false;
+    careerState.isPaused = true;
+    careerState.currentLap = 0;
+    careerState.cars = [];
+    
+    // Очищаем интерфейс
+    const canvas = document.getElementById('track-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0a1a2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#4db8ff';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Подготовка к гонке...', canvas.width / 2, canvas.height / 2);
+    }
+    
+    // Очищаем таблицу
+    const tbody = document.getElementById('standings-body');
+    if (tbody) tbody.innerHTML = '';
+    
+    // Обновляем информацию
+    updateRaceInfo();
+    
+    console.log('Игра инициализирована');
+}
+// Скрывает модальное окно
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
+}
+
+// Закрывает модальное окно при клике вне его
+function setupModalCloseListeners() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                this.style.display = 'none';
+            }
+        });
+    });
+}
+
+// Создает кнопку закрытия для модальных окон
+function addCloseButtonsToModals() {
+    document.querySelectorAll('.modal-content').forEach(content => {
+        // Проверяем, нет ли уже кнопки закрытия
+        if (!content.querySelector('.modal-close')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close';
+            closeBtn.innerHTML = '×';
+            closeBtn.onclick = function() {
+                this.closest('.modal').classList.remove('active');
+                this.closest('.modal').style.display = 'none';
+            };
+            content.style.position = 'relative';
+            content.appendChild(closeBtn);
+        }
+    });
+}
+
+// =================== ОБНОВЛЕННАЯ ИНИЦИАЛИЗАЦИЯ ===================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM загружен, инициализируем игру...');
+    
+    // Настраиваем модальные окна
+    setupModalCloseListeners();
+    addCloseButtonsToModals();
+    
+    // Показываем окно создания карьеры
+    showModal('career-setup-modal');
+    
+    // Заполняем календарь
+    populateCalendar();
+    
+    // Настраиваем обработчики событий для формы
+    setupFormHandlers();
+    
+    // Запускаем анимацию
+    requestAnimationFrame(updateAnimation);
+    
+    console.log('Игра инициализирована');
+});
+
+// Настраивает обработчики событий формы
+function setupFormHandlers() {
+    // Обработчик для кнопки начала карьеры
+    const startCareerBtn = document.querySelector('.start-career-btn');
+    if (startCareerBtn) {
+        startCareerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Кнопка начала карьеры нажата');
+            startCareer();
+        });
+    }
+    
+    // Обработчики для полей ввода (чтобы Enter тоже работал)
+    const inputs = document.querySelectorAll('#career-setup-modal input');
+    inputs.forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                startCareer();
+            }
+        });
+    });
+    
+    // Обработчик для селекта сложности
+    const difficultyOptions = document.querySelectorAll('.difficulty-option input');
+    difficultyOptions.forEach(option => {
+        option.addEventListener('change', function() {
+            console.log('Выбрана сложность:', this.value);
+        });
+    });
+}
 let careerState = {
     // Основные данные
     season: 2024,
@@ -152,15 +298,60 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Начинает новую карьеру
+// Начинает новую карьеру (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 function startCareer() {
-    const teamName = document.getElementById('career-team-name').value.trim();
-    const driver1 = document.getElementById('driver1-name-input').value.trim();
-    const driver2 = document.getElementById('driver2-name-input').value.trim();
-    const budget = parseInt(document.getElementById('starting-budget').value);
-    const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+    console.log('Функция startCareer вызвана');
     
-    if (!teamName || !driver1 || !driver2) {
-        alert('Пожалуйста, заполните все поля!');
+    // Получаем значения из формы
+    const teamNameInput = document.getElementById('career-team-name');
+    const driver1Input = document.getElementById('driver1-name-input');
+    const driver2Input = document.getElementById('driver2-name-input');
+    const budgetSelect = document.getElementById('starting-budget');
+    const difficultyRadio = document.querySelector('input[name="difficulty"]:checked');
+    
+    // Проверяем, что все элементы существуют
+    if (!teamNameInput || !driver1Input || !driver2Input || !budgetSelect || !difficultyRadio) {
+        console.error('Не найдены элементы формы:', {
+            teamNameInput: !!teamNameInput,
+            driver1Input: !!driver1Input,
+            driver2Input: !!driver2Input,
+            budgetSelect: !!budgetSelect,
+            difficultyRadio: !!difficultyRadio
+        });
+        alert('Ошибка загрузки формы. Пожалуйста, обновите страницу.');
+        return;
+    }
+    
+    const teamName = teamNameInput.value.trim();
+    const driver1 = driver1Input.value.trim();
+    const driver2 = driver2Input.value.trim();
+    const budget = parseInt(budgetSelect.value);
+    const difficulty = difficultyRadio.value;
+    
+    console.log('Получены данные:', { teamName, driver1, driver2, budget, difficulty });
+    
+    // Валидация
+    if (!teamName) {
+        alert('Пожалуйста, введите название команды!');
+        teamNameInput.focus();
+        return;
+    }
+    
+    if (!driver1) {
+        alert('Пожалуйста, введите имя первого пилота!');
+        driver1Input.focus();
+        return;
+    }
+    
+    if (!driver2) {
+        alert('Пожалуйста, введите имя второго пилота!');
+        driver2Input.focus();
+        return;
+    }
+    
+    if (driver1 === driver2) {
+        alert('Имена пилотов должны быть разными!');
+        driver1Input.focus();
         return;
     }
     
@@ -170,23 +361,46 @@ function startCareer() {
     careerState.teamBudget = budget;
     careerState.difficulty = difficulty;
     
-    // Инициализируем чемпионат
-    initializeChampionship();
+    console.log('Настройки сохранены:', careerState);
     
-    // Начинаем первую гонку
-    startNextRace();
-    
-    // Скрываем модальное окно
-    document.getElementById('career-setup-modal').style.display = 'none';
-    
-    // Обновляем интерфейс
-    updateTeamInfo();
-    updateCareerTab();
-    
-    // Добавляем запись в лог
-    addRaceLog(`🎯 Начата новая карьера в сезоне ${careerState.season}`);
-    addRaceLog(`🏎️ Команда: ${careerState.playerTeamName}`);
-    addRaceLog(`👤 Пилоты: ${driver1} и ${driver2}`);
+    try {
+        // Инициализируем чемпионат
+        initializeChampionship();
+        
+        // Скрываем модальное окно
+        hideModal('career-setup-modal');
+        console.log('Модальное окно скрыто');
+        
+        // Обновляем интерфейс
+        updateTeamInfo();
+        updateCareerTab();
+        
+        // Начинаем первую гонку
+        setTimeout(() => {
+            startNextRace();
+        }, 100);
+        
+        // Добавляем запись в лог
+        addRaceLog(`🎯 Начата новая карьера в сезоне ${careerState.season}`);
+        addRaceLog(`🏎️ Команда: ${careerState.playerTeamName}`);
+        addRaceLog(`👤 Пилоты: ${driver1} и ${driver2}`);
+        addRaceLog(`💰 Бюджет: €${budget}M`);
+        addRaceLog(`⚙️ Сложность: ${getDifficultyText(difficulty)}`);
+        
+    } catch (error) {
+        console.error('Ошибка при начале карьеры:', error);
+        alert('Произошла ошибка при запуске карьеры. Пожалуйста, обновите страницу и попробуйте снова.');
+    }
+}
+
+// Возвращает текст сложности
+function getDifficultyText(difficulty) {
+    const texts = {
+        easy: 'Лёгкая',
+        medium: 'Средняя',
+        hard: 'Сложная'
+    };
+    return texts[difficulty] || difficulty;
 }
 
 // Инициализирует таблицы чемпионата
@@ -239,43 +453,60 @@ function initializeChampionship() {
 
 // =================== УПРАВЛЕНИЕ ГОНКАМИ ===================
 // Начинает следующую гонку
+// Начинает следующую гонку (ИСПРАВЛЕННАЯ)
 function startNextRace() {
+    console.log('Начинаем следующую гонку...');
+    
     if (careerState.currentRace > careerState.totalRaces) {
         alert('Сезон завершён!');
         return;
     }
     
+    // Инициализируем игру
+    initGame();
+    
     // Выбираем трассу для текущей гонки
     const trackIndex = (careerState.currentRace - 1) % tracks.length;
     careerState.currentTrack = tracks[trackIndex];
     careerState.totalLaps = careerState.currentTrack.totalLaps;
-    careerState.currentLap = 0;
-    careerState.raceStarted = false;
-    careerState.raceFinished = false;
-    careerState.isPaused = true;
-    careerState.fastestLap = { driver: '', time: 9999, team: '' };
+    
+    console.log(`Гонка ${careerState.currentRace}: ${careerState.currentTrack.name}`);
     
     // Обновляем интерфейс
     updateRaceInfo();
+    
+    // Инициализируем машины
     initializeCars();
+    
+    // Рисуем трассу
     drawTrack();
+    
+    // Обновляем таблицу
     updateStandingsTable();
     
     // Переключаемся на вкладку гонки
     switchTab('race');
     
-    // Активируем кнопку старта
+    // Активируем кнопки
     document.getElementById('start-race-btn').disabled = false;
     document.getElementById('pause-btn').disabled = true;
     document.getElementById('next-race-btn').disabled = true;
     
     // Очищаем лог
-    document.getElementById('race-log').innerHTML = '';
+    const raceLog = document.getElementById('race-log');
+    if (raceLog) raceLog.innerHTML = '';
+    
+    // Очищаем время кругов
+    const lapTimes = document.getElementById('lap-times');
+    if (lapTimes) lapTimes.innerHTML = '';
+    
     addRaceLog(`📍 Гонка ${careerState.currentRace}/${careerState.totalRaces}: ${careerState.currentTrack.name}`);
-    addRaceLog(`📏 Дистанция: ${careerState.totalLaps} кругов, ${(careerState.totalLaps * careerState.currentTrack.lapDistance).toFixed(1)} км`);
+    addRaceLog(`📏 Дистанция: ${careerState.totalLaps} кругов`);
     
     // Выбираем стратегию по умолчанию
     selectStrategy(1);
+    
+    console.log('Гонка готова к старту');
 }
 
 // Начинает гонку
@@ -292,8 +523,22 @@ function startRace() {
     
     // Добавляем запись в лог
     addRaceLog(`🏁 СТАРТ ГОНКИ!`);
-    addRaceLog(`💨 ${careerState.driverNames[0]} стартует с ${getPlayerCar(0).position} позиции`);
-    addRaceLog(`💨 ${careerState.driverNames[1]} стартует с ${getPlayerCar(1).position} позиции`);
+    const playerCar1 = getPlayerCar(0);
+    const playerCar2 = getPlayerCar(1);
+    if (playerCar1) {
+        addRaceLog(`💨 ${careerState.driverNames[0]} стартует с ${playerCar1.position} позиции`);
+    }
+    if (playerCar2) {
+        addRaceLog(`💨 ${careerState.driverNames[1]} стартует с ${playerCar2.position} позиции`);
+    }
+    if (!careerState.cars || careerState.cars.length === 0) {
+        addRaceLog(`⚠️ Ошибка: машины не инициализированы. Сначала начните гонку из календаря/карьеры.`);
+        careerState.raceStarted = false;
+        careerState.isPaused = true;
+        document.getElementById('start-race-btn').disabled = false;
+        document.getElementById('pause-btn').disabled = true;
+        return;
+    }
     
     // Запускаем симуляцию
     if (careerState.raceInterval) clearInterval(careerState.raceInterval);
@@ -859,53 +1104,90 @@ function finishSeason() {
 
 // =================== ИНТЕРФЕЙС ===================
 // Инициализирует машины для гонки
+// Инициализирует машины для гонки (ИСПРАВЛЕННАЯ)
 function initializeCars() {
+    console.log('Инициализация машин...');
+    
+    // Очищаем массив машин
     careerState.cars = [];
     
-    // Машина игрока (два пилота)
+    // Проверяем, что у нас есть имена пилотов
+    if (!careerState.driverNames || careerState.driverNames.length < 2) {
+        console.error('Не заданы имена пилотов');
+        careerState.driverNames = ['Пилот #1', 'Пилот #2'];
+    }
+    
     const playerTeamColor = '#FF0000';
     
     // Производительность игрока с учётом апгрейдов
     const playerPerformance = {
-        aero: 0.5 + (careerState.teamUpgrades.aero * 0.1),
-        engine: 0.5 + (careerState.teamUpgrades.engine * 0.12),
-        chassis: 0.5 + (careerState.teamUpgrades.chassis * 0.08),
+        aero: 0.5 + ((careerState.teamUpgrades?.aero || 1) * 0.1),
+        engine: 0.5 + ((careerState.teamUpgrades?.engine || 1) * 0.12),
+        chassis: 0.5 + ((careerState.teamUpgrades?.chassis || 1) * 0.08),
         reliability: 0.8
     };
     
-    careerState.cars.push(new Car(
-        careerState.playerTeamName, 
-        playerTeamColor, 
-        0, 
-        careerState.driverNames[0],
-        playerPerformance
-    ));
+    console.log('Создаём машины игрока:', careerState.driverNames);
     
-    careerState.cars.push(new Car(
-        careerState.playerTeamName, 
-        playerTeamColor, 
-        1, 
-        careerState.driverNames[1],
-        playerPerformance
-    ));
+    // Создаём машины игрока
+    try {
+        careerState.cars.push(new Car(
+            careerState.playerTeamName, 
+            playerTeamColor, 
+            0, 
+            careerState.driverNames[0],
+            playerPerformance
+        ));
+        
+        careerState.cars.push(new Car(
+            careerState.playerTeamName, 
+            playerTeamColor, 
+            1, 
+            careerState.driverNames[1],
+            playerPerformance
+        ));
+    } catch (error) {
+        console.error('Ошибка создания машин игрока:', error);
+        return;
+    }
     
-    // Машины соперников
+    // Создаём машины соперников
     let carId = 2;
-    f1Teams.forEach(team => {
-        team.drivers.forEach(driverName => {
-            careerState.cars.push(new Car(
-                team.name, 
-                team.color, 
-                carId, 
-                driverName,
-                team.performance
-            ));
-            carId++;
+    
+    if (f1Teams && f1Teams.length > 0) {
+        f1Teams.forEach(team => {
+            if (team.drivers && team.drivers.length > 0) {
+                team.drivers.forEach(driverName => {
+                    try {
+                        careerState.cars.push(new Car(
+                            team.name, 
+                            team.color, 
+                            carId, 
+                            driverName,
+                            team.performance
+                        ));
+                        carId++;
+                    } catch (error) {
+                        console.error(`Ошибка создания машины ${driverName}:`, error);
+                    }
+                });
+            }
         });
-    });
+    }
+    
+    console.log(`Создано ${careerState.cars.length} машин`);
+    
+    // Проверяем, что машины созданы
+    if (careerState.cars.length === 0) {
+        console.error('Не удалось создать ни одной машины');
+        return;
+    }
     
     // Случайный стартовый порядок с учетом производительности
-    careerState.cars.sort((a, b) => b.carPerformance - a.carPerformance + (Math.random() * 0.2 - 0.1));
+    careerState.cars.sort((a, b) => {
+        const perfDiff = (b.carPerformance || 0.5) - (a.carPerformance || 0.5);
+        return perfDiff + (Math.random() * 0.2 - 0.1);
+    });
     
     // Назначаем позиции
     careerState.cars.forEach((car, index) => {
@@ -920,9 +1202,11 @@ function initializeCars() {
         // Устанавливаем стратегию по умолчанию
         car.strategy = 1;
         car.pitStopPlan = [
-            { lap: Math.floor(careerState.totalLaps * 0.4), tire: 'hard' }
+            { lap: Math.floor((careerState.totalLaps || 50) * 0.4), tire: 'hard' }
         ];
     });
+    
+    console.log('Машины инициализированы:', careerState.cars.length);
 }
 
 // Обновляет позиции машин
@@ -943,11 +1227,27 @@ function updatePositions() {
 
 // Обновляет информацию о гонке
 function updateRaceInfo() {
-    document.getElementById('current-race-name').textContent = careerState.currentTrack.name;
-    document.getElementById('track-stats').textContent = 
-        `Длина круга: ${careerState.currentTrack.lapDistance} км | Кругов: ${careerState.totalLaps}`;
-    document.getElementById('current-lap').textContent = careerState.currentLap;
-    document.getElementById('total-laps').textContent = careerState.totalLaps;
+    const raceNameEl = document.getElementById('current-race-name');
+    const trackStatsEl = document.getElementById('track-stats');
+    const currentLapEl = document.getElementById('current-lap');
+    const totalLapsEl = document.getElementById('total-laps');
+
+    const track = careerState.currentTrack;
+    const totalLaps = careerState.totalLaps || (track ? track.totalLaps : 0);
+
+    // Если трасса ещё не выбрана (например, во время initGame), показываем заглушки
+    if (!track) {
+        if (raceNameEl) raceNameEl.textContent = '—';
+        if (trackStatsEl) trackStatsEl.textContent = 'Длина круга: — | Кругов: —';
+        if (currentLapEl) currentLapEl.textContent = String(careerState.currentLap || 0);
+        if (totalLapsEl) totalLapsEl.textContent = String(totalLaps || 0);
+    } else {
+        if (raceNameEl) raceNameEl.textContent = track.name;
+        if (trackStatsEl) trackStatsEl.textContent =
+            `Длина круга: ${track.lapDistance} км | Кругов: ${totalLaps}`;
+        if (currentLapEl) currentLapEl.textContent = String(careerState.currentLap || 0);
+        if (totalLapsEl) totalLapsEl.textContent = String(totalLaps || 0);
+    }
     
     // Прогресс гонки
     const progressPercent = Math.min(100, (careerState.currentLap / careerState.totalLaps) * 100);
@@ -1028,47 +1328,62 @@ function updateStandingsTable() {
 }
 
 // Обновляет панели пилотов
+// Обновляет панели пилотов (ИСПРАВЛЕННАЯ)
 function updateDriverPanels() {
+    // Проверяем, есть ли машины
+    if (!careerState.cars || careerState.cars.length === 0) return;
+    
     const playerCars = careerState.cars.filter(c => c.team === careerState.playerTeamName);
     
     playerCars.forEach((car, index) => {
         const idx = index + 1;
         
+        // Проверяем, существуют ли элементы DOM
+        const nameElement = document.getElementById(`driver${idx}-name`);
+        const tireElement = document.getElementById(`driver${idx}-tire`);
+        const wearElement = document.getElementById(`driver${idx}-wear`);
+        const wearBarElement = document.getElementById(`driver${idx}-wear-bar`);
+        const pitsElement = document.getElementById(`driver${idx}-pits`);
+        const posElement = document.getElementById(`driver${idx}-pos`);
+        const statusElement = document.getElementById(`driver${idx}-status`);
+        const timerElement = document.getElementById(`driver${idx}-pit-timer`);
+        
+        if (!nameElement || !tireElement || !wearElement || !wearBarElement || 
+            !pitsElement || !posElement || !statusElement) return;
+        
         // Обновляем данные
-        document.getElementById(`driver${idx}-name`).textContent = car.driver;
-        document.getElementById(`driver${idx}-tire`).textContent = tireConfigs[car.tire].name;
-        document.getElementById(`driver${idx}-tire`).style.color = tireConfigs[car.tire].color;
+        nameElement.textContent = car.driver;
+        tireElement.textContent = tireConfigs[car.tire].name;
+        tireElement.style.color = tireConfigs[car.tire].color;
         
         const wearPercent = Math.max(0, Math.floor(car.tireWear));
-        document.getElementById(`driver${idx}-wear`).textContent = wearPercent + '%';
-        document.getElementById(`driver${idx}-wear-bar`).style.width = wearPercent + '%';
+        wearElement.textContent = wearPercent + '%';
+        wearBarElement.style.width = wearPercent + '%';
         
         // Цвет износа
         let wearColor = '#00ff00';
         if (wearPercent < 50) wearColor = '#ffff00';
         if (wearPercent < 20) wearColor = '#ff0000';
-        document.getElementById(`driver${idx}-wear-bar`).style.backgroundColor = wearColor;
+        wearBarElement.style.backgroundColor = wearColor;
         
-        document.getElementById(`driver${idx}-pits`).textContent = car.pitStopCounter;
-        document.getElementById(`driver${idx}-pos`).textContent = car.position;
+        pitsElement.textContent = car.pitStopCounter;
+        posElement.textContent = car.position;
         
         // Статус
-        const statusElement = document.getElementById(`driver${idx}-status`);
         if (car.isInPit) {
             statusElement.textContent = 'В пит-лейне';
             statusElement.style.background = 'rgba(255, 153, 0, 0.3)';
             statusElement.style.color = '#ff9900';
             
             // Таймер
-            const timerElement = document.getElementById(`driver${idx}-pit-timer`);
-            if (car.pitStopTimeLeft > 0) {
+            if (timerElement && car.pitStopTimeLeft > 0) {
                 timerElement.textContent = `Осталось: ${car.pitStopTimeLeft.toFixed(1)}с`;
             }
         } else {
             statusElement.textContent = 'На трассе';
             statusElement.style.background = 'rgba(0, 200, 0, 0.2)';
             statusElement.style.color = '#66ff66';
-            document.getElementById(`driver${idx}-pit-timer`).textContent = '';
+            if (timerElement) timerElement.textContent = '';
         }
     });
 }
@@ -1249,28 +1564,31 @@ function getUpgradeName(type) {
 
 // =================== КАРЬЕРНЫЙ РЕЖИМ ===================
 // Переключает вкладки
+// =================== КАРЬЕРНЫЙ РЕЖИМ ===================
+
+// Переключает вкладки
 function switchTab(tabName) {
     // Скрываем все вкладки
     document.querySelectorAll('.tab-content').forEach(el => {
         el.classList.remove('active');
     });
-    
+
     // Убираем активность со всех кнопок
     document.querySelectorAll('.tab-btn').forEach(el => {
         el.classList.remove('active');
     });
-    
+
     // Показываем выбранную вкладку
     document.getElementById(`${tabName}-tab-content`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
-    
+
     // Обновляем данные если нужно
     if (tabName === 'career') {
         updateCareerTab();
     } else if (tabName === 'calendar') {
         updateCalendar();
     }
-}
+} // ← ДОБАВЬТЕ ЭТУ ЗАКРЫВАЮЩУЮ СКОБКУ!
 
 // Обновляет вкладку карьеры
 function updateCareerTab() {
@@ -1460,154 +1778,223 @@ function updateCalendar() {
 
 // =================== ВИЗУАЛИЗАЦИЯ ===================
 // Рисует трассу и машины
+// Рисует трассу и машины (ИСПРАВЛЕННАЯ)
 function drawTrack() {
-    if (!careerState.currentTrack) return;
-    
     const canvas = document.getElementById('track-canvas');
+    if (!canvas) {
+        console.error('Canvas не найден');
+        return;
+    }
+    
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('Canvas context не доступен');
+        return;
+    }
+    
+    if (!careerState.currentTrack) {
+        // Рисуем пустой экран
+        ctx.fillStyle = '#0a1a2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#4db8ff';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Трасса не выбрана', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+    
     const track = careerState.currentTrack;
     
     // Очищаем холст
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Рисуем фон
+    ctx.fillStyle = '#0a1a2a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     // Рисуем трассу
-    ctx.beginPath();
-    ctx.moveTo(track.coordinates[0].x, track.coordinates[0].y);
-    
-    for (let i = 1; i < track.coordinates.length; i++) {
-        ctx.lineTo(track.coordinates[i].x, track.coordinates[i].y);
-    }
-    
-    ctx.closePath();
-    ctx.strokeStyle = track.color;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-    
-    // Полупрозрачная внутренняя линия
-    ctx.strokeStyle = track.color + '80';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    // Рисуем машины
-    careerState.cars.forEach(car => {
-        const progress = car.progress / 100;
-        const totalPoints = track.coordinates.length;
-        const segment = progress * totalPoints;
-        const segmentIndex = Math.floor(segment) % totalPoints;
-        const nextIndex = (segmentIndex + 1) % totalPoints;
-        const segmentProgress = segment - segmentIndex;
-        
-        const x1 = track.coordinates[segmentIndex].x;
-        const y1 = track.coordinates[segmentIndex].y;
-        const x2 = track.coordinates[nextIndex].x;
-        const y2 = track.coordinates[nextIndex].y;
-        
-        const x = x1 + (x2 - x1) * segmentProgress;
-        const y = y1 + (y2 - y1) * segmentProgress;
-        
-        // Рисуем машину
+    if (track.coordinates && track.coordinates.length > 1) {
         ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.moveTo(track.coordinates[0].x, track.coordinates[0].y);
         
-        // Цвет машины в пит-лейне
-        if (car.isInPit) {
-            ctx.fillStyle = '#ff9900';
-        } else {
-            ctx.fillStyle = car.color;
+        for (let i = 1; i < track.coordinates.length; i++) {
+            ctx.lineTo(track.coordinates[i].x, track.coordinates[i].y);
         }
         
-        ctx.fill();
+        // Замыкаем трассу
+        ctx.lineTo(track.coordinates[0].x, track.coordinates[0].y);
         
-        // Обводка
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = track.color || '#FFFFFF';
+        ctx.lineWidth = 6;
         ctx.stroke();
         
-        // Номер позиции
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(car.position, x, y);
-    });
+        // Полупрозрачная внутренняя линия
+        ctx.strokeStyle = (track.color || '#FFFFFF') + '80';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+    
+    // Рисуем машины
+    if (careerState.cars && careerState.cars.length > 0) {
+        careerState.cars.forEach(car => {
+            if (!track.coordinates || track.coordinates.length === 0) return;
+            
+            const progress = Math.min(100, Math.max(0, car.progress)) / 100;
+            const totalPoints = track.coordinates.length;
+            const segment = progress * totalPoints;
+            const segmentIndex = Math.floor(segment) % totalPoints;
+            const nextIndex = (segmentIndex + 1) % totalPoints;
+            const segmentProgress = segment - segmentIndex;
+            
+            const x1 = track.coordinates[segmentIndex].x;
+            const y1 = track.coordinates[segmentIndex].y;
+            const x2 = track.coordinates[nextIndex].x;
+            const y2 = track.coordinates[nextIndex].y;
+            
+            const x = x1 + (x2 - x1) * segmentProgress;
+            const y = y1 + (y2 - y1) * segmentProgress;
+            
+            // Рисуем машину
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, Math.PI * 2);
+            
+            // Цвет машины в пит-лейне
+            if (car.isInPit) {
+                ctx.fillStyle = '#ff9900';
+            } else {
+                ctx.fillStyle = car.color || '#FF0000';
+            }
+            
+            ctx.fill();
+            
+            // Обводка
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Номер позиции
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(car.position || '?', x, y);
+        });
+    }
     
     // Стартовая линия
-    const startX = track.coordinates[0].x;
-    const startY = track.coordinates[0].y;
-    const endX = track.coordinates[1].x;
-    const endY = track.coordinates[1].y;
-    
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 5]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    if (track.coordinates && track.coordinates.length > 1) {
+        const startX = track.coordinates[0].x;
+        const startY = track.coordinates[0].y;
+        const endX = track.coordinates[1].x;
+        const endY = track.coordinates[1].y;
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
 }
 
-// Цикл анимации
+// Цикл анимации (ИСПРАВЛЕННАЯ - без рекурсии)
+let animationFrameId = null;
+
 function updateAnimation() {
+    // Отменяем предыдущий кадр
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+    }
+    
+    // Проверяем условия для обновления
     if (careerState.raceStarted && !careerState.isPaused && !careerState.raceFinished) {
         const now = Date.now();
-        const delta = now - careerState.lastUpdate;
+        const delta = careerState.lastUpdate ? now - careerState.lastUpdate : 16;
         
-        // Обновляем машины (плавное движение)
-        careerState.cars.forEach(car => {
-            if (!car.isInPit) {
-                // ПЛАВНОЕ ДВИЖЕНИЕ - УМЕНЬШЕННАЯ СКОРОСТЬ
-                car.progress += car.speed * 0.1 * (delta / 1000) * careerState.simulationSpeed;
-                
-                // Обновляем износ
-                car.updateTireWear();
-                
-                // Проверяем завершение круга
-                if (car.progress >= 100) {
-                    car.completeLap();
-                    car.progress = 0;
+        // Обновляем машины
+        if (careerState.cars && careerState.cars.length > 0) {
+            careerState.cars.forEach(car => {
+                if (!car.isInPit) {
+                    // ПЛАВНОЕ ДВИЖЕНИЕ
+                    car.progress += car.speed * 0.1 * (delta / 1000) * careerState.simulationSpeed;
+                    
+                    // Обновляем износ
+                    if (car.updateTireWear) {
+                        car.updateTireWear();
+                    }
+                    
+                    // Проверяем завершение круга
+                    if (car.progress >= 100) {
+                        if (car.completeLap) {
+                            car.completeLap();
+                        }
+                        car.progress = 0;
+                    }
+                    
+                    // Проверяем пит-стопы
+                    if (car.checkScheduledPitStop) {
+                        car.checkScheduledPitStop();
+                    }
+                } else if (car.handlePitStop) {
+                    car.handlePitStop();
                 }
-                
-                // Проверяем пит-стопы
-                car.checkScheduledPitStop();
-            } else {
-                car.handlePitStop();
-            }
-        });
-        
-        // Обновляем текущий круг
-        const maxLap = Math.max(...careerState.cars.map(c => c.lap));
-        if (maxLap > careerState.currentLap) {
-            careerState.currentLap = maxLap;
-            updateRaceInfo();
+            });
             
-            // Проверяем окончание гонки
-            if (careerState.currentLap >= careerState.totalLaps) {
-                finishRace();
+            // Обновляем текущий круг
+            const maxLap = Math.max(...careerState.cars.map(c => c.lap));
+            if (maxLap > careerState.currentLap) {
+                careerState.currentLap = maxLap;
+                updateRaceInfo();
+                
+                // Проверяем окончание гонки
+                if (careerState.currentLap >= careerState.totalLaps) {
+                    finishRace();
+                    return; // Не запрашиваем следующий кадр
+                }
             }
+            
+            // Пересчитываем позиции
+            updatePositions();
+            
+            // Обновляем интерфейс
+            drawTrack();
+            updateStandingsTable();
+            updateDriverPanels();
         }
-        
-        // Пересчитываем позиции
-        updatePositions();
-        
-        // Обновляем интерфейс
-        drawTrack();
-        updateStandingsTable();
-        updateDriverPanels();
         
         careerState.lastUpdate = now;
     }
     
-    requestAnimationFrame(updateAnimation);
+    // Запрашиваем следующий кадр
+    animationFrameId = requestAnimationFrame(updateAnimation);
+}
+
+// Останавливает анимацию
+function stopAnimation() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
 }
 
 // =================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===================
 // Возвращает машину пилота игрока
+// Возвращает машину пилота игрока (ИСПРАВЛЕННАЯ)
 function getPlayerCar(driverIndex) {
-    return careerState.cars.find(car => 
-        car.team === careerState.playerTeamName && 
-        car.driver === careerState.driverNames[driverIndex]
+    if (!careerState.cars || careerState.cars.length === 0) return null;
+    
+    const playerCars = careerState.cars.filter(car => 
+        car.team === careerState.playerTeamName
     );
+    
+    if (driverIndex >= 0 && driverIndex < playerCars.length) {
+        return playerCars[driverIndex];
+    }
+    
+    return null;
 }
 
 // Показывает результаты гонки
@@ -1644,15 +2031,4 @@ function showRaceResults() {
 // Переходит к следующей гонке
 function nextRace() {
     startNextRace();
-}
-
-// Начинает следующую гонку из календаря
-function startNextRace() {
-    switchTab('race');
-    startNextRace();
-}
-
-// Инициализирует следующую гонку
-function initializeNextRace() {
-    // Уже реализовано в startNextRace()
 }

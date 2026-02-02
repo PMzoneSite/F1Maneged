@@ -6,6 +6,61 @@
     <title>F1 Manager Career</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Добавьте это в head секцию после других стилей -->
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .modal.active {
+        display: flex !important;
+    }
+
+    .modal-content {
+        background: linear-gradient(to bottom, #0f2838, #0a1c2a);
+        border-radius: 15px;
+        width: 100%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        color: white;
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        box-shadow: 0 15px 50px rgba(0, 100, 255, 0.3);
+        position: relative;
+        z-index: 10000;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 60, 60, 0.2);
+        color: #ff6666;
+        border: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-close:hover {
+        background: rgba(255, 60, 60, 0.4);
+    }
+</style>
 </head>
 <body>
     <div class="game-container">
