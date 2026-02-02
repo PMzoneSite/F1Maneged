@@ -901,6 +901,55 @@ body {
     text-align: center;
 }
 
+.career-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.career-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.career-btn {
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.25s;
+}
+
+.career-btn.primary {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    color: #ffffff;
+    border-color: rgba(0, 180, 255, 0.6);
+}
+
+.career-btn.primary:hover {
+    box-shadow: 0 6px 16px rgba(0, 160, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.career-btn.secondary {
+    background: rgba(255, 80, 80, 0.15);
+    color: #ff8a8a;
+    border-color: rgba(255, 80, 80, 0.5);
+}
+
+.career-btn.secondary:hover {
+    background: rgba(255, 80, 80, 0.25);
+}
+
 .career-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

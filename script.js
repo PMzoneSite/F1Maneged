@@ -98,17 +98,19 @@ document.addEventListener('DOMContentLoaded', function() {
     setupModalCloseListeners();
     addCloseButtonsToModals();
     
-    // Показываем окно создания карьеры
-    showModal('career-setup-modal');
-    
+    // Настраиваем обработчики событий для формы и стратегии
+    setupFormHandlers();
+    setupStrategyHandlers();
+
+    // Пытаемся загрузить сохранённую карьеру
+    const loaded = loadCareer();
+    if (!loaded) {
+        // Если сохранения нет — показываем окно создания карьеры
+        showModal('career-setup-modal');
+    }
+
     // Заполняем календарь
     populateCalendar();
-    
-    // Настраиваем обработчики событий для формы
-    setupFormHandlers();
-
-    // Настраиваем клики по стратегиям (в HTML это div'ы без onclick)
-    setupStrategyHandlers();
     
     // Запускаем анимацию
     requestAnimationFrame(updateAnimation);
@@ -126,6 +128,121 @@ function setupStrategyHandlers() {
             selectStrategy(parseInt(match[1], 10));
         });
     });
+}
+
+// =================== СОХРАНЕНИЕ / ЗАГРУЗКА КАРЬЕРЫ ===================
+// Подготавливает данные для сохранения (без временных полей и объектов гонки)
+function getCareerSaveData() {
+    const {
+        raceInterval,
+        animationId,
+        currentTrack,
+        cars,
+        raceStarted,
+        raceFinished,
+        isPaused,
+        currentLap,
+        totalLaps,
+        lastUpdate,
+        raceStartTime,
+        ...rest
+    } = careerState;
+    return rest;
+}
+
+// Сохраняет карьеру в localStorage
+function saveCareer() {
+    try {
+        const data = getCareerSaveData();
+        localStorage.setItem(CAREER_SAVE_KEY, JSON.stringify(data));
+        addRaceLog('💾 Карьера сохранена');
+        alert('Карьера сохранена!');
+    } catch (e) {
+        console.error('Ошибка сохранения карьеры:', e);
+        alert('Не удалось сохранить карьеру. Проверьте настройки браузера.');
+    }
+}
+
+// Загружает карьеру из localStorage
+function loadCareer() {
+    try {
+        const raw = localStorage.getItem(CAREER_SAVE_KEY);
+        if (!raw) {
+            return false;
+        }
+        const data = JSON.parse(raw);
+        
+        // Сбрасываем текущее состояние и накатываем сохранённое
+        careerState = Object.assign(
+            JSON.parse(JSON.stringify(initialCareerState)),
+            data,
+            {
+                // Гонка при загрузке всегда не в процессе
+                raceStarted: false,
+                raceFinished: false,
+                isPaused: true,
+                currentTrack: null,
+                currentLap: 0,
+                totalLaps: 0,
+                cars: [],
+                raceInterval: null,
+                animationId: null,
+                lastUpdate: 0,
+                raceStartTime: null
+            }
+        );
+
+        // Обновляем интерфейс под загруженную карьеру
+        if (typeof updateTeamInfo === 'function') updateTeamInfo();
+        if (typeof updateCareerTab === 'function') updateCareerTab();
+        if (typeof updateCalendar === 'function') updateCalendar();
+        if (typeof updateRaceInfo === 'function') updateRaceInfo();
+        if (typeof drawTrack === 'function') drawTrack();
+
+        console.log('Карьера загружена из localStorage', careerState);
+        return true;
+    } catch (e) {
+        console.error('Ошибка загрузки карьеры:', e);
+        return false;
+    }
+}
+
+// Сброс карьеры и начало новой
+function resetCareer() {
+    if (!confirm('Удалить текущую карьеру и начать новую?')) return;
+
+    try {
+        localStorage.removeItem(CAREER_SAVE_KEY);
+    } catch (e) {
+        console.warn('Не удалось удалить сохранение карьеры:', e);
+    }
+
+    // Останавливаем возможную гонку
+    if (careerState.raceInterval) {
+        clearInterval(careerState.raceInterval);
+        careerState.raceInterval = null;
+    }
+    if (typeof stopAnimation === 'function') {
+        stopAnimation();
+    }
+
+    // Сбрасываем состояние
+    careerState = JSON.parse(JSON.stringify(initialCareerState));
+
+    // Очищаем UI гонки
+    const raceLog = document.getElementById('race-log');
+    if (raceLog) raceLog.innerHTML = '';
+    const lapTimes = document.getElementById('lap-times');
+    if (lapTimes) lapTimes.innerHTML = '';
+
+    if (typeof updateTeamInfo === 'function') updateTeamInfo();
+    if (typeof updateCareerTab === 'function') updateCareerTab();
+    if (typeof updateCalendar === 'function') updateCalendar();
+    if (typeof updateRaceInfo === 'function') updateRaceInfo();
+    if (typeof drawTrack === 'function') drawTrack();
+
+    // Показываем окно создания новой карьеры
+    showModal('career-setup-modal');
 }
 
 // Настраивает обработчики событий формы
@@ -160,7 +277,9 @@ function setupFormHandlers() {
         });
     });
 }
-let careerState = {
+const CAREER_SAVE_KEY = 'f1_career_save_v1';
+
+const initialCareerState = {
     // Основные данные
     season: 2024,
     currentRace: 1,
@@ -199,8 +318,12 @@ let careerState = {
     simulationSpeed: 1,
     raceInterval: null,
     animationId: null,
-    lastUpdate: 0
+    lastUpdate: 0,
+    raceStartTime: null
 };
+
+// Текущее состояние карьеры (может перезаписываться при загрузке сохранения)
+let careerState = JSON.parse(JSON.stringify(initialCareerState));
 
 // Конфигурация шин с реалистичными параметрами
 const tireConfigs = {
@@ -299,18 +422,6 @@ const f1Teams = [
         performance: { aero: 0.77, engine: 0.77, chassis: 0.77, reliability: 0.77 }
     }
 ];
-
-// =================== ИНИЦИАЛИЗАЦИЯ КАРЬЕРЫ ===================
-document.addEventListener('DOMContentLoaded', function() {
-    // Показываем окно создания карьеры
-    document.getElementById('career-setup-modal').style.display = 'flex';
-    
-    // Заполняем календарь
-    populateCalendar();
-    
-    // Запускаем анимацию
-    requestAnimationFrame(updateAnimation);
-});
 
 // Начинает новую карьеру
 // Начинает новую карьеру (ИСПРАВЛЕННАЯ ВЕРСИЯ)

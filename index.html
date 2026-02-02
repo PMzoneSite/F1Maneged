@@ -308,7 +308,17 @@
         <div id="career-tab-content" class="tab-content">
             <div class="career-container">
                 <div class="career-header card">
-                    <h1><i class="fas fa-trophy"></i> Карьера - Сезон 2024</h1>
+                    <div class="career-header-top">
+                        <h1><i class="fas fa-trophy"></i> Карьера - Сезон 2024</h1>
+                        <div class="career-actions">
+                            <button class="career-btn primary" onclick="saveCareer()">
+                                <i class="fas fa-save"></i> Сохранить карьеру
+                            </button>
+                            <button class="career-btn secondary" onclick="resetCareer()">
+                                <i class="fas fa-trash-alt"></i> Новая карьера
+                            </button>
+                        </div>
+                    </div>
                     <div class="career-stats">
                         <div class="career-stat">
                             <div class="stat-label">Пройдено гонок</div>
