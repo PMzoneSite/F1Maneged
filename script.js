@@ -106,12 +106,27 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Настраиваем обработчики событий для формы
     setupFormHandlers();
+
+    // Настраиваем клики по стратегиям (в HTML это div'ы без onclick)
+    setupStrategyHandlers();
     
     // Запускаем анимацию
     requestAnimationFrame(updateAnimation);
     
     console.log('Игра инициализирована');
 });
+
+// Клики по блокам стратегии
+function setupStrategyHandlers() {
+    document.querySelectorAll('.strategy-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const id = option.id || '';
+            const match = id.match(/strategy-(\d+)/);
+            if (!match) return;
+            selectStrategy(parseInt(match[1], 10));
+        });
+    });
+}
 
 // Настраивает обработчики событий формы
 function setupFormHandlers() {
@@ -516,6 +531,7 @@ function startRace() {
     careerState.raceStarted = true;
     careerState.isPaused = false;
     careerState.lastUpdate = Date.now();
+    careerState.raceStartTime = careerState.lastUpdate;
     
     // Обновляем кнопки
     document.getElementById('start-race-btn').disabled = true;
@@ -542,7 +558,13 @@ function startRace() {
     
     // Запускаем симуляцию
     if (careerState.raceInterval) clearInterval(careerState.raceInterval);
-    careerState.raceInterval = setInterval(simulateRace, 1000 / careerState.simulationSpeed);
+    // Быстрый тик + delta-время внутри simulateRace (скорость регулируется simulationSpeed)
+    careerState.raceInterval = setInterval(simulateRace, 50);
+
+    // Запускаем анимационный цикл (если был остановлен после финиша)
+    if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(updateAnimation);
+    }
 }
 
 // Ставит гонку на паузу/продолжает
@@ -561,14 +583,17 @@ function togglePause() {
 }
 
 // Устанавливает скорость симуляции
-function setSimulationSpeed(speed) {
+function setSimulationSpeed(speed, evt) {
     careerState.simulationSpeed = speed;
     
     // Обновляем активную кнопку
     document.querySelectorAll('.speed-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.classList.add('active');
+    const e = evt || window.event;
+    if (e && e.target) {
+        e.target.classList.add('active');
+    }
     
     // Перезапускаем интервал с новой скоростью
     if (careerState.raceInterval && !careerState.isPaused) {
@@ -714,11 +739,14 @@ class Car {
     }
     
     // Обновляет прогресс на трассе
-    updateProgress() {
+    updateProgress(deltaSeconds = 1) {
         if (this.isInPit) {
             this.handlePitStop();
             return;
         }
+
+        // Защита от NaN/Infinity, которые ломают отрисовку и сортировку позиций
+        if (!Number.isFinite(this.progress)) this.progress = 0;
         
         // РАССЧИТЫВАЕМ СКОРОСТЬ С УЧЁТОМ ВСЕХ ФАКТОРОВ
         let speedMultiplier = this.carPerformance * 1.5; // Базовая производительность
@@ -746,14 +774,17 @@ class Car {
             speedMultiplier *= 1.15; // Бонус для игрока
         }
         
-        // ОБНОВЛЯЕМ ПРОГРЕСС
-        this.progress += this.speed * speedMultiplier;
+        // ОБНОВЛЯЕМ ПРОГРЕСС (delta-based, чтобы скорость не зависела от частоты тика)
+        // Подбор коэффициента так, чтобы гонка укладывалась примерно в ~3 минуты.
+        const baseProgressPerSecond = 35; // чем больше — тем быстрее круги
+        this.progress += this.speed * speedMultiplier * deltaSeconds * baseProgressPerSecond;
         
-        // Обновляем износ шин
-        this.updateTireWear();
+        // Обновляем износ шин (с учётом прошедшего времени)
+        this.updateTireWear(deltaSeconds);
         
-        // Проверяем завершение круга
-        if (this.progress >= 100) {
+        // Проверяем завершение круга (wrap, чтобы не "телепортироваться" и не терять переполнение)
+        while (this.progress >= 100) {
+            this.progress -= 100;
             this.completeLap();
         }
         
@@ -762,11 +793,13 @@ class Car {
     }
     
     // Обновляет износ шин
-    updateTireWear() {
+    updateTireWear(deltaSeconds = 1) {
         if (this.isInPit) return;
         
         const tireConfig = tireConfigs[this.tire];
-        let wearRate = tireConfig.wearRate;
+        // Базовый износ сильно замедлен и зависит от прошедшего времени,
+        // чтобы шины не «умирали» за несколько секунд.
+        let wearRate = tireConfig.wearRate * 0.5;
         
         // Увеличиваем износ при агрессивной езде
         wearRate *= (0.8 + this.aggression * 0.4);
@@ -774,22 +807,16 @@ class Car {
         // Учитываем производительность машины (лучшие машины меньше изнашивают шины)
         wearRate *= (1.2 - this.carPerformance * 0.4);
         
-        this.tireWear -= wearRate;
+        // Масштабируем износ по времени
+        this.tireWear -= wearRate * deltaSeconds;
         this.tireAge++;
         
         if (this.tireWear < 0) this.tireWear = 0;
-        
-        // Критический износ
-        if (this.tireWear < 20) {
-            // Сильно замедляемся
-            this.progress *= 0.95;
-        }
     }
     
     // Завершает круг
     completeLap() {
         this.lap++;
-        this.progress = 0;
         
         // Рассчитываем время круга
         const baseTime = tireConfigs[this.tire].baseLapTime;
@@ -899,10 +926,22 @@ class Car {
 // Основная функция симуляции
 function simulateRace() {
     if (careerState.isPaused || !careerState.raceStarted || careerState.raceFinished) return;
+
+    const now = Date.now();
+    const last = careerState.lastUpdate || now;
+    const deltaSeconds = Math.max(0.001, (now - last) / 1000) * (careerState.simulationSpeed || 1);
+    careerState.lastUpdate = now;
+
+    // Ограничение длительности гонки (макс. 3 минуты реального времени)
+    const MAX_RACE_DURATION_MS = 3 * 60 * 1000;
+    if (careerState.raceStartTime && (now - careerState.raceStartTime) >= MAX_RACE_DURATION_MS) {
+        finishRace();
+        return;
+    }
     
     // Обновляем все машины
     careerState.cars.forEach(car => {
-        car.updateProgress();
+        car.updateProgress(deltaSeconds);
     });
     
     // Обновляем текущий круг (по самой быстрой машине)
@@ -945,6 +984,9 @@ function finishRace() {
         clearInterval(careerState.raceInterval);
         careerState.raceInterval = null;
     }
+
+    // Полностью останавливаем анимацию, чтобы машины не "ехали" после финиша
+    stopAnimation();
     
     // Обновляем кнопки
     document.getElementById('pause-btn').disabled = true;
@@ -1813,47 +1855,39 @@ function drawTrack() {
     ctx.fillStyle = '#0a1a2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Рисуем трассу
-    if (track.coordinates && track.coordinates.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(track.coordinates[0].x, track.coordinates[0].y);
-        
-        for (let i = 1; i < track.coordinates.length; i++) {
-            ctx.lineTo(track.coordinates[i].x, track.coordinates[i].y);
-        }
-        
-        // Замыкаем трассу
-        ctx.lineTo(track.coordinates[0].x, track.coordinates[0].y);
-        
-        ctx.strokeStyle = track.color || '#FFFFFF';
-        ctx.lineWidth = 6;
-        ctx.stroke();
-        
-        // Полупрозрачная внутренняя линия
-        ctx.strokeStyle = (track.color || '#FFFFFF') + '80';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-    }
+    // Рисуем трассу (круговая визуализация по умолчанию — как просили)
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const radius = Math.min(canvas.width, canvas.height) * 0.33;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = track.color || '#FFFFFF';
+    ctx.lineWidth = 10;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
+    ctx.strokeStyle = (track.color || '#FFFFFF') + '80';
+    ctx.lineWidth = 3;
+    ctx.stroke();
     
-    // Рисуем машины
+    // Рисуем машины (движение по кругу)
     if (careerState.cars && careerState.cars.length > 0) {
         careerState.cars.forEach(car => {
-            if (!track.coordinates || track.coordinates.length === 0) return;
-            
-            const progress = Math.min(100, Math.max(0, car.progress)) / 100;
-            const totalPoints = track.coordinates.length;
-            const segment = progress * totalPoints;
-            const segmentIndex = Math.floor(segment) % totalPoints;
-            const nextIndex = (segmentIndex + 1) % totalPoints;
-            const segmentProgress = segment - segmentIndex;
-            
-            const x1 = track.coordinates[segmentIndex].x;
-            const y1 = track.coordinates[segmentIndex].y;
-            const x2 = track.coordinates[nextIndex].x;
-            const y2 = track.coordinates[nextIndex].y;
-            
-            const x = x1 + (x2 - x1) * segmentProgress;
-            const y = y1 + (y2 - y1) * segmentProgress;
+            const safeProgress = Number.isFinite(car.progress) ? car.progress : 0;
+            const lapProgress = (Math.min(100, Math.max(0, safeProgress)) / 100);
+            // 0..2π, старт сверху
+            const angle = (lapProgress * Math.PI * 2) - (Math.PI / 2);
+
+            // Небольшое расхождение радиуса по позиции, чтобы кружки не слипались
+            // Делаем смещение стабильным (по id), чтобы машины не "прыгали" между дорожками при смене позиции
+            const idNum = typeof car.id === 'number' ? car.id : (parseInt(String(car.id), 10) || 0);
+            const laneOffset = (Math.abs(idNum) % 3) * 6;
+            const r = radius - 6 - laneOffset;
+
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
             
             // Рисуем машину
             ctx.beginPath();
@@ -1882,93 +1916,40 @@ function drawTrack() {
         });
     }
     
-    // Стартовая линия
-    if (track.coordinates && track.coordinates.length > 1) {
-        const startX = track.coordinates[0].x;
-        const startY = track.coordinates[0].y;
-        const endX = track.coordinates[1].x;
-        const endY = track.coordinates[1].y;
-        
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([10, 5]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
+    // Стартовая линия (сверху круга)
+    ctx.beginPath();
+    ctx.moveTo(cx - 20, cy - radius);
+    ctx.lineTo(cx + 20, cy - radius);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 // Цикл анимации (ИСПРАВЛЕННАЯ - без рекурсии)
 let animationFrameId = null;
 
 function updateAnimation() {
-    // Отменяем предыдущий кадр
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-    }
-    
-    // Проверяем условия для обновления
-    if (careerState.raceStarted && !careerState.isPaused && !careerState.raceFinished) {
-        const now = Date.now();
-        const delta = careerState.lastUpdate ? now - careerState.lastUpdate : 16;
-        
-        // Обновляем машины
+    // Рендер-цикл: НЕ меняем физику/круги здесь (это делает simulateRace).
+    // Если гонка не идёт — рисуем один раз актуальное состояние и полностью останавливаемся.
+    if (!careerState.raceStarted || careerState.isPaused || careerState.raceFinished) {
         if (careerState.cars && careerState.cars.length > 0) {
-            careerState.cars.forEach(car => {
-                if (!car.isInPit) {
-                    // ПЛАВНОЕ ДВИЖЕНИЕ
-                    car.progress += car.speed * 0.1 * (delta / 1000) * careerState.simulationSpeed;
-                    
-                    // Обновляем износ
-                    if (car.updateTireWear) {
-                        car.updateTireWear();
-                    }
-                    
-                    // Проверяем завершение круга
-                    if (car.progress >= 100) {
-                        if (car.completeLap) {
-                            car.completeLap();
-                        }
-                        car.progress = 0;
-                    }
-                    
-                    // Проверяем пит-стопы
-                    if (car.checkScheduledPitStop) {
-                        car.checkScheduledPitStop();
-                    }
-                } else if (car.handlePitStop) {
-                    car.handlePitStop();
-                }
-            });
-            
-            // Обновляем текущий круг
-            const maxLap = Math.max(...careerState.cars.map(c => c.lap));
-            if (maxLap > careerState.currentLap) {
-                careerState.currentLap = maxLap;
-                updateRaceInfo();
-                
-                // Проверяем окончание гонки
-                if (careerState.currentLap >= careerState.totalLaps) {
-                    finishRace();
-                    return; // Не запрашиваем следующий кадр
-                }
-            }
-            
-            // Пересчитываем позиции
-            updatePositions();
-            
-            // Обновляем интерфейс
             drawTrack();
             updateStandingsTable();
             updateDriverPanels();
         }
-        
-        careerState.lastUpdate = now;
+        animationFrameId = null;
+        return;
     }
-    
-    // Запрашиваем следующий кадр
+
+    // Гонка идёт — просто обновляем UI/отрисовку
+    if (careerState.cars && careerState.cars.length > 0) {
+        drawTrack();
+        updateStandingsTable();
+        updateDriverPanels();
+    }
+
     animationFrameId = requestAnimationFrame(updateAnimation);
 }
 
