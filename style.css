@@ -1002,6 +1002,11 @@ body {
     border-bottom: 1px solid rgba(60, 120, 180, 0.3);
 }
 
+.championship-table td img {
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
 .championship-table tr:hover {
     background: rgba(0, 123, 255, 0.1);
 }

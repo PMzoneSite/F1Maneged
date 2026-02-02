@@ -1,6 +1,38 @@
 // =================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ КАРЬЕРЫ ===================
 // =================== ИСПРАВЛЕНИЕ МОДАЛЬНЫХ ОКОН ===================
 
+// Получает путь к логотипу команды
+function getTeamLogoPath(teamName) {
+    const logoMap = {
+        'Mercedes': 'data/assets/f1.png', // Используем общий логотип F1, если нет конкретного
+        'Ferrari': 'data/assets/Ferrari.png',
+        'Red Bull Racing': 'data/assets/RB_logo.png',
+        'McLaren': 'data/assets/MacL_logo.jpg',
+        'Aston Martin': 'data/assets/Aston_Martin.png',
+        'Alpine': 'data/assets/Alpine_logo.png',
+        'Williams': 'data/assets/Logo_Williams_F1.png',
+        'AlphaTauri': 'data/assets/Alpha_Tauri_brand_logo.png',
+        'Alfa Romeo': 'data/assets/Alfa-Romeo_logo.png',
+        'Haas': 'data/assets/Haas_F1_Team_Logo.svg.png',
+        'Cadilac': 'data/assets/f1.png' // Используем общий логотип, если нет конкретного
+    };
+    
+    // Проверяем точное совпадение
+    if (logoMap[teamName]) {
+        return logoMap[teamName];
+    }
+    
+    // Проверяем частичное совпадение (для пользовательских команд)
+    for (const [key, path] of Object.entries(logoMap)) {
+        if (teamName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(teamName.toLowerCase())) {
+            return path;
+        }
+    }
+    
+    // Возвращаем общий логотип F1 по умолчанию
+    return 'data/assets/f1.png';
+}
+
 // Показывает модальное окно
 function showModal(modalId) {
     // Скрываем все модальные окна
@@ -364,19 +396,19 @@ const f1Teams = [
     { 
         name: 'Mercedes', 
         color: '#00D2BE', 
-        drivers: ['Hamilton', 'Russell'],
+        drivers: ['Antonelli', 'Russell'],
         performance: { aero: 0.9, engine: 0.95, chassis: 0.9, reliability: 0.95 }
     },
     { 
         name: 'Ferrari', 
         color: '#DC0000', 
-        drivers: ['Leclerc', 'Sainz'],
+        drivers: ['Leclerc', 'Hamilton'],
         performance: { aero: 0.95, engine: 0.9, chassis: 0.95, reliability: 0.9 }
     },
     { 
         name: 'Red Bull Racing', 
         color: '#0600EF', 
-        drivers: ['Verstappen', 'Perez'],
+        drivers: ['Verstappen', 'Hajar'],
         performance: { aero: 0.98, engine: 0.92, chassis: 0.98, reliability: 0.92 }
     },
     { 
@@ -400,7 +432,7 @@ const f1Teams = [
     { 
         name: 'Williams', 
         color: '#005AFF', 
-        drivers: ['Albon', 'Sargeant'],
+        drivers: ['Albon', 'Sainz'],
         performance: { aero: 0.75, engine: 0.8, chassis: 0.78, reliability: 0.8 }
     },
     { 
@@ -410,9 +442,9 @@ const f1Teams = [
         performance: { aero: 0.78, engine: 0.75, chassis: 0.8, reliability: 0.78 }
     },
     { 
-        name: 'Alfa Romeo', 
+        name: 'Cadilac', 
         color: '#900000', 
-        drivers: ['Bottas', 'Zhou'],
+        drivers: ['Bottas', 'Perez'],
         performance: { aero: 0.8, engine: 0.78, chassis: 0.75, reliability: 0.75 }
     },
     { 
@@ -1465,10 +1497,14 @@ function updateStandingsTable() {
             tireIcon = '⏳';
         }
         
+        const logoPath = getTeamLogoPath(car.team);
         row.innerHTML = `
             <td class="pos-col">${car.position}</td>
             <td class="driver-col">${car.driver}</td>
-            <td class="team-col">${car.team}</td>
+            <td class="team-col" style="display: flex; align-items: center; gap: 8px;">
+                <img src="${logoPath}" alt="${car.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/f1.png'">
+                ${car.team}
+            </td>
             <td class="interval-col">${interval}</td>
             <td class="tire-col" style="color: ${tireConfigs[car.tire].color}">
                 ${tireIcon} ${tireConfigs[car.tire].name}
@@ -1775,9 +1811,13 @@ function updateConstructorsStandings() {
             row.classList.add('team-row');
         }
         
+        const logoPath = getTeamLogoPath(standing.team);
         row.innerHTML = `
             <td>${index + 1}</td>
-            <td><span style="color: ${standing.color}">●</span> ${standing.team}</td>
+            <td style="display: flex; align-items: center; gap: 8px;">
+                <img src="${logoPath}" alt="${standing.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/f1.png'">
+                <span style="color: ${standing.color}">●</span> ${standing.team}
+            </td>
             <td>${standing.points}</td>
             <td>${standing.wins}</td>
             <td>${standing.podiums}</td>
@@ -1799,10 +1839,14 @@ function updateDriversStandings() {
             row.classList.add('team-row');
         }
         
+        const logoPath = getTeamLogoPath(standing.team);
         row.innerHTML = `
             <td>${index + 1}</td>
             <td><span style="color: ${standing.color}">●</span> ${standing.driver}</td>
-            <td>${standing.team}</td>
+            <td style="display: flex; align-items: center; gap: 8px;">
+                <img src="${logoPath}" alt="${standing.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/f1.png'">
+                ${standing.team}
+            </td>
             <td>${standing.points}</td>
             <td>${standing.wins}</td>
         `;
@@ -2036,6 +2080,34 @@ function drawTrack() {
     ctx.setLineDash([10, 5]);
     ctx.stroke();
     ctx.setLineDash([]);
+    
+    // Отображаем время гонки в секундах (если гонка идёт)
+    if (careerState.raceStarted && !careerState.raceFinished && careerState.cars && careerState.cars.length > 0) {
+        // Находим лидера для отображения его времени
+        const leader = careerState.cars[0];
+        if (leader && leader.totalTime > 0) {
+            const totalSeconds = Math.floor(leader.totalTime);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Рисуем фон для текста
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(canvas.width - 120, 10, 110, 35);
+            
+            // Рисуем время
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`Время: ${timeString}`, canvas.width - 10, 15);
+            
+            // Также показываем текущий круг
+            ctx.fillStyle = '#88c1ff';
+            ctx.font = '14px Arial';
+            ctx.fillText(`Круг: ${careerState.currentLap}/${careerState.totalLaps}`, canvas.width - 10, 40);
+        }
+    }
 }
 
 // Цикл анимации (ИСПРАВЛЕННАЯ - без рекурсии)
