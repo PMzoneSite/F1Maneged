@@ -1974,8 +1974,36 @@ function updateCalendar() {
 }
 
 // =================== ВИЗУАЛИЗАЦИЯ ===================
-// Рисует трассу и машины
-// Рисует трассу и машины (ИСПРАВЛЕННАЯ)
+// Вычисляет позицию на трассе по прогрессу (0-100)
+function getTrackPosition(track, progress) {
+    if (!track.coordinates || track.coordinates.length < 2) {
+        return null;
+    }
+    
+    const totalPoints = track.coordinates.length;
+    const normalizedProgress = Math.max(0, Math.min(100, progress)) / 100;
+    const totalDistance = normalizedProgress * totalPoints;
+    
+    const segmentIndex = Math.floor(totalDistance) % totalPoints;
+    const nextIndex = (segmentIndex + 1) % totalPoints;
+    const segmentProgress = totalDistance - Math.floor(totalDistance);
+    
+    const p1 = track.coordinates[segmentIndex];
+    const p2 = track.coordinates[nextIndex];
+    
+    // Интерполяция между точками
+    const x = p1.x + (p2.x - p1.x) * segmentProgress;
+    const y = p1.y + (p2.y - p1.y) * segmentProgress;
+    
+    // Вычисляем направление движения для ориентации машины
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const angle = Math.atan2(dy, dx);
+    
+    return { x, y, angle };
+}
+
+// Рисует трассу и машины с качественной инфографикой
 function drawTrack() {
     const canvas = document.getElementById('track-canvas');
     if (!canvas) {
@@ -2006,84 +2034,215 @@ function drawTrack() {
     // Очищаем холст
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Рисуем фон
-    ctx.fillStyle = '#0a1a2a';
+    // Рисуем градиентный фон
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#0a1a2a');
+    gradient.addColorStop(1, '#1a2a3a');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Рисуем трассу (круговая визуализация по умолчанию — как просили)
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const radius = Math.min(canvas.width, canvas.height) * 0.33;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = track.color || '#FFFFFF';
-    ctx.lineWidth = 10;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
-    ctx.strokeStyle = (track.color || '#FFFFFF') + '80';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    // Рисуем машины (движение по кругу)
-    if (careerState.cars && careerState.cars.length > 0) {
-        careerState.cars.forEach(car => {
-            const safeProgress = Number.isFinite(car.progress) ? car.progress : 0;
-            const lapProgress = (Math.min(100, Math.max(0, safeProgress)) / 100);
-            // 0..2π, старт сверху
-            const angle = (lapProgress * Math.PI * 2) - (Math.PI / 2);
-
-            // Небольшое расхождение радиуса по позиции, чтобы кружки не слипались
-            // Делаем смещение стабильным (по id), чтобы машины не "прыгали" между дорожками при смене позиции
-            const idNum = typeof car.id === 'number' ? car.id : (parseInt(String(car.id), 10) || 0);
-            const laneOffset = (Math.abs(idNum) % 3) * 6;
-            const r = radius - 6 - laneOffset;
-
-            const x = cx + Math.cos(angle) * r;
-            const y = cy + Math.sin(angle) * r;
-            
-            // Рисуем машину
-            ctx.beginPath();
-            ctx.arc(x, y, 10, 0, Math.PI * 2);
-            
-            // Цвет машины в пит-лейне
-            if (car.isInPit) {
-                ctx.fillStyle = '#ff9900';
-            } else {
-                ctx.fillStyle = car.color || '#FF0000';
-            }
-            
-            ctx.fill();
-            
-            // Обводка
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Номер позиции
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 10px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(car.position || '?', x, y);
+    // Масштабируем координаты трассы под размер canvas
+    if (track.coordinates && track.coordinates.length >= 2) {
+        // Находим границы трассы
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        track.coordinates.forEach(coord => {
+            minX = Math.min(minX, coord.x);
+            minY = Math.min(minY, coord.y);
+            maxX = Math.max(maxX, coord.x);
+            maxY = Math.max(maxY, coord.y);
         });
+        
+        const trackWidth = maxX - minX;
+        const trackHeight = maxY - minY;
+        
+        // Вычисляем масштаб с отступами
+        const padding = 60;
+        const scaleX = (canvas.width - padding * 2) / trackWidth;
+        const scaleY = (canvas.height - padding * 2) / trackHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        // Центрируем трассу
+        const offsetX = (canvas.width - (trackWidth * scale)) / 2 - minX * scale;
+        const offsetY = (canvas.height - (trackHeight * scale)) / 2 - minY * scale;
+        
+        // Функция преобразования координат
+        const transform = (coord) => ({
+            x: coord.x * scale + offsetX,
+            y: coord.y * scale + offsetY
+        });
+        
+        // Рисуем трассу с градиентом и тенью
+        ctx.save();
+        
+        // Тень трассы
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        
+        // Внешняя граница трассы (широкая)
+        ctx.beginPath();
+        const firstPoint = transform(track.coordinates[0]);
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        
+        for (let i = 1; i < track.coordinates.length; i++) {
+            const point = transform(track.coordinates[i]);
+            ctx.lineTo(point.x, point.y);
+        }
+        ctx.closePath();
+        
+        // Градиент для трассы
+        const trackGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        trackGradient.addColorStop(0, track.color || '#FFFFFF');
+        trackGradient.addColorStop(1, (track.color || '#FFFFFF') + '80');
+        
+        ctx.strokeStyle = trackGradient;
+        ctx.lineWidth = 18;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        
+        // Внутренняя линия трассы
+        ctx.beginPath();
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        for (let i = 1; i < track.coordinates.length; i++) {
+            const point = transform(track.coordinates[i]);
+            ctx.lineTo(point.x, point.y);
+        }
+        ctx.closePath();
+        
+        ctx.strokeStyle = (track.color || '#FFFFFF') + '40';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+        
+        // Разделительная линия
+        ctx.beginPath();
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        for (let i = 1; i < track.coordinates.length; i++) {
+            const point = transform(track.coordinates[i]);
+            ctx.lineTo(point.x, point.y);
+        }
+        ctx.closePath();
+        
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([15, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.restore();
+        
+        // Стартовая линия
+        const startPoint = transform(track.coordinates[0]);
+        const secondPoint = transform(track.coordinates[1]);
+        const startAngle = Math.atan2(secondPoint.y - startPoint.y, secondPoint.x - startPoint.x);
+        const lineLength = 30;
+        const perpAngle = startAngle + Math.PI / 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(
+            startPoint.x + Math.cos(perpAngle) * lineLength,
+            startPoint.y + Math.sin(perpAngle) * lineLength
+        );
+        ctx.lineTo(
+            startPoint.x - Math.cos(perpAngle) * lineLength,
+            startPoint.y - Math.sin(perpAngle) * lineLength
+        );
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([8, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Рисуем машины с плавной анимацией
+        if (careerState.cars && careerState.cars.length > 0) {
+            // Сортируем машины по позиции для правильного порядка отрисовки
+            const sortedCars = [...careerState.cars].sort((a, b) => a.position - b.position);
+            
+            sortedCars.forEach((car, index) => {
+                const trackPos = getTrackPosition(track, car.progress);
+                if (!trackPos) return;
+                
+                const x = trackPos.x;
+                const y = trackPos.y;
+                const angle = trackPos.angle;
+                
+                // Смещение для разных дорожек (чтобы машины не накладывались)
+                const idNum = typeof car.id === 'number' ? car.id : (parseInt(String(car.id), 10) || 0);
+                const laneOffset = (Math.abs(idNum) % 3 - 1) * 8;
+                const perpAngle = angle + Math.PI / 2;
+                const offsetX = Math.cos(perpAngle) * laneOffset;
+                const offsetY = Math.sin(perpAngle) * laneOffset;
+                
+                const finalX = x + offsetX;
+                const finalY = y + offsetY;
+                
+                ctx.save();
+                
+                // Тень машины
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // Поворачиваем контекст для ориентации машины
+                ctx.translate(finalX, finalY);
+                ctx.rotate(angle);
+                
+                // Рисуем машину (прямоугольник с закругленными краями)
+                const carWidth = 16;
+                const carHeight = 10;
+                
+                // Градиент для машины
+                const carGradient = ctx.createLinearGradient(-carWidth/2, -carHeight/2, carWidth/2, carHeight/2);
+                if (car.isInPit) {
+                    carGradient.addColorStop(0, '#ff9900');
+                    carGradient.addColorStop(1, '#cc7700');
+                } else {
+                    const baseColor = car.color || '#FF0000';
+                    carGradient.addColorStop(0, baseColor);
+                    carGradient.addColorStop(1, baseColor + 'CC');
+                }
+                
+                ctx.fillStyle = carGradient;
+                ctx.beginPath();
+                ctx.roundRect(-carWidth/2, -carHeight/2, carWidth, carHeight, 3);
+                ctx.fill();
+                
+                // Обводка
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Номер позиции
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'transparent';
+                ctx.fillText(car.position || '?', 0, 0);
+                
+                ctx.restore();
+            });
+        }
+        
+        // Инфографика: название трассы и страна
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(10, 10, 300, 60);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(track.name, 20, 15);
+        
+        ctx.fillStyle = '#88c1ff';
+        ctx.font = '14px Arial';
+        ctx.fillText(`${track.country} • ${track.lapDistance} км`, 20, 40);
     }
-    
-    // Стартовая линия (сверху круга)
-    ctx.beginPath();
-    ctx.moveTo(cx - 20, cy - radius);
-    ctx.lineTo(cx + 20, cy - radius);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 5]);
-    ctx.stroke();
-    ctx.setLineDash([]);
     
     // Отображаем время гонки в секундах (если гонка идёт)
     if (careerState.raceStarted && !careerState.raceFinished && careerState.cars && careerState.cars.length > 0) {
-        // Находим лидера для отображения его времени
         const leader = careerState.cars[0];
         if (leader && leader.totalTime > 0) {
             const totalSeconds = Math.floor(leader.totalTime);
@@ -2092,8 +2251,8 @@ function drawTrack() {
             const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             
             // Рисуем фон для текста
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(canvas.width - 120, 10, 110, 35);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(canvas.width - 140, 10, 130, 50);
             
             // Рисуем время
             ctx.fillStyle = '#ffffff';
@@ -2102,12 +2261,29 @@ function drawTrack() {
             ctx.textBaseline = 'top';
             ctx.fillText(`Время: ${timeString}`, canvas.width - 10, 15);
             
-            // Также показываем текущий круг
+            // Текущий круг
             ctx.fillStyle = '#88c1ff';
             ctx.font = '14px Arial';
             ctx.fillText(`Круг: ${careerState.currentLap}/${careerState.totalLaps}`, canvas.width - 10, 40);
         }
     }
+}
+
+// Полифилл для roundRect (если не поддерживается)
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+        this.beginPath();
+        this.moveTo(x + radius, y);
+        this.lineTo(x + width - radius, y);
+        this.quadraticCurveTo(x + width, y, x + width, y + radius);
+        this.lineTo(x + width, y + height - radius);
+        this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        this.lineTo(x + radius, y + height);
+        this.quadraticCurveTo(x, y + height, x, y + height - radius);
+        this.lineTo(x, y + radius);
+        this.quadraticCurveTo(x, y, x + radius, y);
+        this.closePath();
+    };
 }
 
 // Цикл анимации (ИСПРАВЛЕННАЯ - без рекурсии)
