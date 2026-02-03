@@ -4,17 +4,18 @@
 // Получает путь к логотипу команды
 function getTeamLogoPath(teamName) {
     const logoMap = {
-        'Mercedes': 'data/assets/f1.png', // Используем общий логотип F1, если нет конкретного
+        'Mercedes': 'data/assets/mercedes.jpg', // Используем общий логотип F1, если нет конкретного
         'Ferrari': 'data/assets/Ferrari.png',
         'Red Bull Racing': 'data/assets/RB_logo.png',
         'McLaren': 'data/assets/MacL_logo.jpg',
         'Aston Martin': 'data/assets/Aston_Martin.png',
         'Alpine': 'data/assets/Alpine_logo.png',
         'Williams': 'data/assets/Logo_Williams_F1.png',
-        'AlphaTauri': 'data/assets/Alpha_Tauri_brand_logo.png',
+        'Racing Bulls': 'data/assets/Racing_Bulls.png',
         'Alfa Romeo': 'data/assets/Alfa-Romeo_logo.png',
         'Haas': 'data/assets/Haas_F1_Team_Logo.svg.png',
-        'Cadilac': 'data/assets/f1.png' // Используем общий логотип, если нет конкретного
+        'Cadilac': 'data/assets/Cadillac.png',
+        'Audi':'data/assets/audi.png' // Используем общий логотип, если нет конкретного
     };
     
     // Проверяем точное совпадение
@@ -426,7 +427,7 @@ const f1Teams = [
     { 
         name: 'Alpine', 
         color: '#0090FF', 
-        drivers: ['Gasly', 'Ocon'],
+        drivers: ['Gasly', 'Calapinto'],
         performance: { aero: 0.82, engine: 0.87, chassis: 0.82, reliability: 0.82 }
     },
     { 
@@ -436,9 +437,9 @@ const f1Teams = [
         performance: { aero: 0.75, engine: 0.8, chassis: 0.78, reliability: 0.8 }
     },
     { 
-        name: 'AlphaTauri', 
+        name: 'Racing Bulls', 
         color: '#2B4562', 
-        drivers: ['Ricciardo', 'Tsunoda'],
+        drivers: ['Lawson', 'Lindblad'],
         performance: { aero: 0.78, engine: 0.75, chassis: 0.8, reliability: 0.78 }
     },
     { 
@@ -450,9 +451,16 @@ const f1Teams = [
     { 
         name: 'Haas', 
         color: '#FFFFFF', 
-        drivers: ['Magnussen', 'Hulkenberg'],
+        drivers: ['Bearman', 'Ocon'],
         performance: { aero: 0.77, engine: 0.77, chassis: 0.77, reliability: 0.77 }
+    },
+    {
+        name: 'Audi', 
+        color: '#DC0000', 
+        drivers: ['Hulkenberg', 'Bortoleto'],
+        performance: { aero: 0.8, engine: 0.78, chassis: 0.75, reliability: 0.75 }
     }
+
 ];
 
 // Начинает новую карьеру
