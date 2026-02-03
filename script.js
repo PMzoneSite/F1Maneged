@@ -4,18 +4,17 @@
 // Получает путь к логотипу команды
 function getTeamLogoPath(teamName) {
     const logoMap = {
-        'Mercedes': 'data/assets/mercedes.jpg', // Используем общий логотип F1, если нет конкретного
-        'Ferrari': 'data/assets/Ferrari.png',
-        'Red Bull Racing': 'data/assets/RB_logo.png',
-        'McLaren': 'data/assets/MacL_logo.jpg',
-        'Aston Martin': 'data/assets/Aston_Martin.png',
-        'Alpine': 'data/assets/Alpine_logo.png',
-        'Williams': 'data/assets/Logo_Williams_F1.png',
-        'Racing Bulls': 'data/assets/Racing_Bulls.png',
-        'Alfa Romeo': 'data/assets/Alfa-Romeo_logo.png',
-        'Haas': 'data/assets/Haas_F1_Team_Logo.svg.png',
-        'Cadilac': 'data/assets/Cadillac.png',
-        'Audi':'data/assets/audi.png' // Используем общий логотип, если нет конкретного
+        'Mercedes': 'data/assets/TeamLogo/mercedes.jpg', // Используем общий логотип F1, если нет конкретного
+        'Ferrari': 'data/assets/TeamLogo/Ferrari.png',
+        'Red Bull Racing': 'data/assets/TeamLogo/RB_logo.png',
+        'McLaren': 'data/assets/TeamLogo/MacL_logo.jpg',
+        'Aston Martin': 'data/assets/TeamLogo/Aston_Martin.png',
+        'Alpine': 'data/assets/TeamLogo/Alpine_logo.png',
+        'Williams': 'data/assets/TeamLogo/Logo_Williams_F1.png',
+        'Racing Bulls': 'data/assets/TeamLogo/Racing_Bulls.png',
+        'Haas': 'data/assets/TeamLogo/Haas_F1_Team_Logo.svg.png',
+        'Cadilac': 'data/assets/TeamLogo/Cadillac.png',
+        'Audi':'data/assets/TeamLogo/audi.png' // Используем общий логотип, если нет конкретного
     };
     
     // Проверяем точное совпадение
@@ -31,7 +30,7 @@ function getTeamLogoPath(teamName) {
     }
     
     // Возвращаем общий логотип F1 по умолчанию
-    return 'data/assets/f1.png';
+    return 'data/assets/TeamLogo/f1.png';
 }
 
 // Показывает модальное окно
@@ -314,7 +313,7 @@ const CAREER_SAVE_KEY = 'f1_career_save_v1';
 
 const initialCareerState = {
     // Основные данные
-    season: 2024,
+    season: 2026,
     currentRace: 1,
     totalRaces: 20,
     playerTeamName: 'Моя команда',
@@ -415,7 +414,7 @@ const f1Teams = [
     { 
         name: 'McLaren', 
         color: '#FF8700', 
-        drivers: ['Norris', 'Piastri'],
+        drivers: ['&#127468; Norris', 'Piastri'],
         performance: { aero: 0.85, engine: 0.85, chassis: 0.88, reliability: 0.88 }
     },
     { 
@@ -1710,7 +1709,7 @@ function updateStandingsTable() {
             <td class="pos-col">${car.position}</td>
             <td class="driver-col">${car.driver}</td>
             <td class="team-col" style="display: flex; align-items: center; gap: 8px;">
-                <img src="${logoPath}" alt="${car.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/f1.png'">
+                <img src="${logoPath}" alt="${car.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/TeamLogo/f1.png'">
                 ${car.team}
             </td>
             <td class="interval-col">${interval}</td>
@@ -2023,7 +2022,7 @@ function updateConstructorsStandings() {
         row.innerHTML = `
             <td>${index + 1}</td>
             <td style="display: flex; align-items: center; gap: 8px;">
-                <img src="${logoPath}" alt="${standing.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/f1.png'">
+                <img src="${logoPath}" alt="${standing.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/TeamLogo/f1.png'">
                 <span style="color: ${standing.color}">●</span> ${standing.team}
             </td>
             <td>${standing.points}</td>
@@ -2052,7 +2051,7 @@ function updateDriversStandings() {
             <td>${index + 1}</td>
             <td><span style="color: ${standing.color}">●</span> ${standing.driver}</td>
             <td style="display: flex; align-items: center; gap: 8px;">
-                <img src="${logoPath}" alt="${standing.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/f1.png'">
+                <img src="${logoPath}" alt="${standing.team}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.src='data/assets/TeamLogo/f1.png'">
                 ${standing.team}
             </td>
             <td>${standing.points}</td>
@@ -2644,7 +2643,7 @@ function showFullRaceResults(results) {
                                 <td class="team-cell">
                                     <img src="${getTeamLogoPath(result.team)}" alt="${result.team}" 
                                          style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;" 
-                                         onerror="this.src='data/assets/f1.png'">
+                                         onerror="this.src='data/assets/TeamLogo/f1.png'">
                                     ${result.team}
                                 </td>
                                 <td class="time-cell">${timeStr}</td>
