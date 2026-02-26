@@ -414,7 +414,7 @@ const f1Teams = [
     { 
         name: 'McLaren', 
         color: '#FF8700', 
-        drivers: ['&#127468; Norris', 'Piastri'],
+        drivers: ['Norris', 'Piastri'],
         performance: { aero: 0.85, engine: 0.85, chassis: 0.88, reliability: 0.88 }
     },
     { 
